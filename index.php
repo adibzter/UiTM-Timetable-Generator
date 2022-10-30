@@ -1,4 +1,4 @@
 <?php
-header(“Location: https://uitmtimetable.skrin.xyz”, true, 301);
+header("Location: https://uitmtimetable.skrin.xyz", true, 301);
 exit();
 ?>
