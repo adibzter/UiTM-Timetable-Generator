@@ -62,10 +62,10 @@ function file_getSubject($campus, $faculty, $subject) {
 
 
 /**
- * Return file age by hour(s)
+ * Return file age by minute(s)
  */
 function getFileOld($file) {
-    return (time() - filemtime($file)) / 60 / 60;
+    return (time() - filemtime($file)) / 60;
 }
 
 ?>

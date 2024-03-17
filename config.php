@@ -35,9 +35,9 @@ define('CACHE_DBFILENAME', 'cache.db');
  * more server bandwidth as the application will fetch the data
  * more often than usual
  *
- * $config['CACHE_TIMELEFT'] := hour;
+ * $config['CACHE_TIMELEFT'] := minute;
  */
-define('CACHE_TIMELEFT', 1);
+define('CACHE_TIMELEFT', 10);
 
 /*
  * You may not need to change this value, unless somehow
