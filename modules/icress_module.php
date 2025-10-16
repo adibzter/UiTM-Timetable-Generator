@@ -287,7 +287,7 @@ function getIcressMainPageInfo() {
 			$hiddenInputs[$m[1]] = $m[2];
 		}
 		
-		if (preg_match("/['\"]([^'\"]+\.cfm)['\"]/", $js, $match)) {
+		if (preg_match("/url:\s*['\"]([^'\"]+\.cfm[^'\"]*)['\"]/", $js, $match)) {
 			$submissionPath = $match[1];
 		}
 	}
