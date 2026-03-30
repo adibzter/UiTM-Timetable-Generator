@@ -71,7 +71,7 @@ function icress_getCampus($campus, $faculty) {
 		$options = array('http' =>
 				array(
 						'method'  => 'POST',
-						'header'  => "Content-Type: application/x-www-form-urlencoded\nReferer: https://simsweb4.uitm.edu.my/estudent/class_timetable/index.htm\nCookie: {$mainPageInfo['cookieHeader']}",
+						'header'  => "Content-Type: application/x-www-form-urlencoded\r\nReferer: https://simsweb4.uitm.edu.my/estudent/class_timetable/index.htm\r\nCookie: {$mainPageInfo['cookieHeader']}",
 						'content' => $postdata
 				)
 		);
