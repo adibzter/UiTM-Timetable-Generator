@@ -18,13 +18,16 @@ function icress_getJadual() {
 	$collect = [];
 
 	foreach ($data['results'] as $result) {
-		$code = $result['id'];
 		$fullname = $result['text'];
 
 		if ($result['id'] === 'X') {
 			continue;
-		} else if (strpos($fullname, 'SELANGOR') === false) {
-			$fullname = explode('-', $fullname, 2)[1];
+		} else if (strpos($fullname, 'SELANGOR') !== false) {
+			$code = $result['id'];
+		} else {
+			$parts = explode('-', $fullname, 2);
+			$code = trim($parts[0]);
+			$fullname = trim($parts[1]);
 		}
 
 		$collect[] = array('code' => $code, 'fullname' => $fullname);
@@ -48,8 +51,9 @@ function icress_getFaculty() {
 	$collect = [];
 
 	foreach ($data['results'] as $result) {
-		$code = $result['id'];
-		$fullname = explode('-', $result['text'], 2)[1];
+		$parts = explode('-', $result['text'], 2);
+		$code = trim($parts[0]);
+		$fullname = trim($parts[1]);
 
 		$collect[] = array('code' => $code, 'fullname' => $fullname);
 	}
