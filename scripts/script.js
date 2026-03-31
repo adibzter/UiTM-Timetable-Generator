@@ -68,11 +68,6 @@ var lboxStatus = true;
 var listsubject;
 var group = {};
 
-// used by automatic data fetcher
-var fetched_data = null;
-var automatic_fetch = false;
-var group_prev = {};
-var index_list = 0;
 
 // change if user choose any campus from select list
 document.querySelector('#listcampus').onchange = function () {
@@ -134,22 +129,6 @@ var showNewTable = function() {
                 // add new row
                 addNewRow();
 
-                // take over automatic fetcher from .login
-                if (automatic_fetch == true) {
-
-                    // remove if any subject non-exist in listsubject
-                    if (lboxStatus == false) {
-                        for (k in fetched_data) {
-                            if (listsubject.indexOf(k) < 0) {
-                                delete fetched_data[k];
-                            }
-                        }
-                    }
-
-                    // jump to processing function
-                    processCourses();
-                }
-
             }
         });
 
@@ -180,72 +159,6 @@ var clearTable = function() {
 		document.getElementById('tools').style.display = 'none';
 }
 
-var processCourses = function () {
-
-    try {
-
-        if (Object.keys(fetched_data).length > 0) {
-
-            var index = null;
-
-            // (bad) trick to get first key property from object
-            for (var k in fetched_data) {
-                index = k;
-                break;
-            }
-
-            // add into dictionary for later
-            group_prev[index_list] = fetched_data[index];
-
-            // delete each one element until "fetched_data" is empty
-            delete fetched_data[index];
-
-            var select_subject = document.querySelectorAll('.select-subject')[index_list++];
-
-            select_subject.value = index; // key = subject
-
-            // because .select-subject was created dynamically
-            // then we need to bubble it up
-            select_subject.dispatchEvent(new CustomEvent('change', {bubbles: true}));
-
-            // recursively do this again
-            processCourses();
-
-        } else {
-
-            // all done!
-            // now one last thing
-            // select the group based on student's courses
-
-            index_list = 0; // reset to initial index
-
-            for (k in group_prev) {
-
-                var select_group = document.querySelectorAll('.select-group')[index_list];
-                select_group.value = group_prev[k];
-
-                // because .select-group was created dynamically
-                // then we need to bubble it up
-                select_group.dispatchEvent(new CustomEvent('change', {bubbles: true}));
-
-                index_list++; // go to its next element
-            }
-
-            // reset all data
-            fetched_data = null;
-            automatic_fetch = false;
-            group_prev = {};
-            index_list = 0;
-
-            // hide loading box
-            blockLoadingBox(false);
-        }
-
-    } catch (e) {
-        alertify.delay(10000).error(e);
-        blockLoadingBox(false);
-    }
-};
 
 /*
  * using event delegation to set an event to the dynamic created elements
@@ -312,26 +225,19 @@ document.querySelector('.newtable').onchange = function (e) {
                         elem.appendChild(el);
                     }
 
-                    if (automatic_fetch == true && Object.keys(fetched_data).length > 0) {
-
-                        // create mousedown event on .select-subject based on new index_list value
-                        // this is to ensure that javascript loads all the subjects before automatic system do it jobs
-                        document.querySelectorAll('.select-subject')[index_list].dispatchEvent(new CustomEvent('mousedown', {bubbles: true}));
-                    }
-
                 };
 
                 // fetch data if it does not exist in Object data yet
                 if (!group[subject]) {
-                    doRequest('api.php?getgroup', 'subject=' + subject + '&faculty=' + faculty + '&campus=' + campus, false, function (data) {
+                    doRequest('api.php?getgroup', 'subject=' + subject + '&faculty=' + faculty + '&campus=' + campus, true, function (data) {
                         if (data != '') {
                             group[subject] = JSON.parse(data);
                             exec();
                         }
                     });
+                } else {
+                    exec();
                 }
-
-                exec();
             }
 
         // delegate event for select-group
