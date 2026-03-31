@@ -496,6 +496,14 @@ document.querySelectorAll('.input-tab').forEach(function (tab) {
         document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
         tab.classList.add('active');
         document.getElementById(tab.getAttribute('data-tab')).classList.add('active');
+
+        // Hide subject/group table for non-campus tabs
+        var selectTable = document.getElementById('select-table');
+        if (tab.getAttribute('data-tab') !== 'tab-campus') {
+            selectTable.style.display = 'none';
+        } else if (document.getElementById('listcampus').value !== '') {
+            selectTable.style.display = 'block';
+        }
     });
 });
 
@@ -864,24 +872,6 @@ function parents(nodeCur, parentMatch) {
     for (; !nodeCur.matches(parentMatch); nodeCur = nodeCur.parentNode) {}
     return nodeCur;
 }
-
-/*
- * un-shamefully stole from youmightnotneedjquery.com
- * ;)
- */
-function extend(out) {
-    out = out || {};
-
-    for (var i = 1; i < arguments.length; i++) {
-        if (!arguments[i]) continue;
-        for (var key in arguments[i]) {
-            if (arguments[i].hasOwnProperty(key))
-                out[key] = arguments[i][key];
-        }
-    }
-
-    return out;
-};
 
 // Save (download) timetable as image
 function saveImg() {
