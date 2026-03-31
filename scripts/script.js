@@ -113,7 +113,7 @@ var showNewTable = function() {
 
                 var elem = document.querySelector('.row-select:last-child .select-subject');
 
-                elem.innerHTML = '<option value="">Select Subject</option>';
+                elem.innerHTML = '<option value="">Select</option>';
 
                 for (var i = 0; i < listsubject.length; i++) {
 
@@ -216,7 +216,7 @@ document.querySelector('.newtable').onchange = function (e) {
                     var elem = parent.querySelector('.select-group');
 
                     // clear previous data in select-group selectform
-                    elem.innerHTML = '<option value="">Select group</option>';
+                    elem.innerHTML = '<option value="">Select</option>';
 
                     for (k in group[subject]) {
                         var el = document.createElement('option');
@@ -224,6 +224,10 @@ document.querySelector('.newtable').onchange = function (e) {
                         el.innerHTML = k;
                         elem.appendChild(el);
                     }
+
+                    // reinit only this specific group select
+                    elem.blobSelect.destroy();
+                    elem.blobSelect.init({ search: 'true' });
 
                 };
 
@@ -356,8 +360,6 @@ document.querySelector('.newtable').onchange = function (e) {
 
         }
 
-				initSelect('select-group');
-				
     } catch (e) {
         alertify.delay(10000).error(e);
         blockLoadingBox(false);
