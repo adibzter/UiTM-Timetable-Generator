@@ -65,37 +65,48 @@ A little update to the frontend, now support mobile view. by - afif
 		</tr>
 	</table>
 	<br><br>
-	<!-- experimental feature OUTDATED/NOT WORKIKNG-->
-	<!-- <button type="button" class="button -dark login">Auto Fetch from i-Learn</button> -->
-
-	<pre>Select Campus/Faculty from list below</pre>
-
-
   <div class='inputTimetable'>
-  <center>
-  	<select name='campus' id="listcampus" class="select-campus">
-  		<option value=''>Select Campus</option>
-  		<!-- amek data kt icress -->
-  		<!-- js akan automatik update data kt sini tiap2 kali run -->
-  	</select>
-		<br>
-		<div id="div-faculty" hidden>
-			<select name='faculty' id="listfaculty" class="select-faculty">
-				<option value=''>Select Faculty</option>
-				<!-- amek data kt icress -->
-				<!-- js akan automatik update data kt sini tiap2 kali run -->
-			</select>
-			<br>
-		</div>
-    or
-    <br><br>
 
-    <div class="upload-btn-wrapper">
-      <button class="btn">Import Excel (.xlsx) file</button>
-      <input type="file" id="excelFile" onchange="return importExcel()"/>
+    <div class="input-tabs">
+      <button class="input-tab active" data-tab="tab-campus">Select Campus</button>
+      <button class="input-tab" data-tab="tab-matric">Matric No.</button>
+      <button class="input-tab" data-tab="tab-import">Import Excel</button>
     </div>
 
-  </center>
+    <div class="tab-content">
+
+      <div id="tab-campus" class="tab-panel active">
+        <center>
+          <select name='campus' id="listcampus" class="select-campus">
+            <option value=''>Select Campus</option>
+          </select>
+          <div id="div-faculty" hidden>
+            <select name='faculty' id="listfaculty" class="select-faculty">
+              <option value=''>Select Faculty</option>
+            </select>
+          </div>
+        </center>
+      </div>
+
+      <div id="tab-matric" class="tab-panel">
+        <center>
+          <input type="text" id="matric-input" placeholder="Enter matric number e.g. 2024123456" />
+          <br><br>
+          <button type="button" class="button -dark login">Fetch Timetable</button>
+        </center>
+      </div>
+
+      <div id="tab-import" class="tab-panel">
+        <center>
+          <div class="upload-btn-wrapper">
+            <button class="btn">Import Excel (.xlsx) file</button>
+            <input type="file" id="excelFile" onchange="return importExcel()"/>
+          </div>
+        </center>
+      </div>
+
+    </div>
+
   </div>
 
 	<div id="select-table">

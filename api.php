@@ -49,19 +49,53 @@ if(isset($_GET['fetchDataMatrix'])) {
     if(!empty($_POST['studentId'])) {
 
         try {
+            $matricNo = $_POST['studentId'];
+            $url = "https://cdn.uitm.link/jadual/baru/{$matricNo}.json";
 
-            $obj = new IStudent($_POST['studentId']);
+            $opts = ['http' => [
+                'method' => 'GET',
+                'header' => "User-Agent: Mozilla/5.0\r\nReferer: https://mystudent.uitm.edu.my/\r\n",
+                'timeout' => 15,
+            ]];
+            $ctx = stream_context_create($opts);
+            $result = @file_get_contents($url, false, $ctx);
 
-            $courses = $obj->getCourses();
-            $uitmcode = $obj->getUiTMCode();
-
-            if($courses === null || $uitmcode === false) {
-                throw new Exception("Can't fetch resources for this student Id (" . $_POST['studentId'] . ") !");
+            if ($result === false) {
+                throw new Exception("Failed to fetch timetable for matric no: {$matricNo}. Server may be down.");
             }
 
-            die(json_encode(array(
-                'Courses' => $courses,
-                'UiTMCode' => $uitmcode)));
+            $data = json_decode($result, true);
+            if (!$data) {
+                throw new Exception("No timetable data found for matric no: {$matricNo}");
+            }
+
+            // Collect unique classes from CDN timetable data
+            $classes = [];
+            $seen = [];
+            foreach ($data as $day) {
+                if (empty($day['jadual'])) continue;
+                foreach ($day['jadual'] as $cls) {
+                    $key = $day['hari'] . '-' . $cls['courseid'] . '-' . $cls['masa'];
+                    if (isset($seen[$key])) continue;
+                    $seen[$key] = true;
+
+                    $masa = preg_replace('/\s*-\s*/', '-', $cls['masa']);
+                    $classes[] = [
+                        'day_time' => strtoupper($day['hari']) . ' ( ' . $masa . ' )',
+                        'subject' => $cls['courseid'] ?? '',
+                        'subject_name' => $cls['course_desc'] ?? '',
+                        'group' => $cls['groups'] ?? '',
+                        'classroom' => $cls['bilik'] ?? '',
+                        'lecturer' => $cls['lecturer'] ?? '',
+                    ];
+                }
+            }
+
+            if (empty($classes)) {
+                throw new Exception("No courses found for matric no: {$matricNo}");
+            }
+
+            die(json_encode($classes));
 
         } catch (Exception $e) {
             die('Alert_Error:' . htmlentities($e->getMessage()));

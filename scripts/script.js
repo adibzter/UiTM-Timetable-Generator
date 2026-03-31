@@ -489,47 +489,124 @@ document.querySelector('.newtable').onclick = function (e) {
 
 }
 
-// Outdated script - not working anymore
-// document.querySelector('.login').onclick = function (e) {
+// Tab switching
+document.querySelectorAll('.input-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+        document.querySelectorAll('.input-tab').forEach(function (t) { t.classList.remove('active'); });
+        document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+        tab.classList.add('active');
+        document.getElementById(tab.getAttribute('data-tab')).classList.add('active');
+    });
+});
 
-//     try {
+// Auto fetch by matric number
+document.querySelector('.login').onclick = function (e) {
 
-//         vex.dialog.open({
-//             message: 'Enter your UiTM\'s ID no (matrix no.) :',
-//             input: [
-//             '<input name="id" type="text" placeholder="Student\'s matrix ID" required />' +
-//             '(This is alpha feature! Consider manual adjusting if it doesn\'t works)'
-//             ].join(''),
-//             buttons: [
-//             extend({}, vex.dialog.buttons.YES, {text: 'Automatic fetch!'}),
-//             ],
-//             callback: function (formData) {
-//                 if (formData) {
+    try {
 
-//                     // block loading box
-//                     blockLoadingBox(true);
+        var matricNo = document.getElementById('matric-input').value.trim();
+        if (matricNo == '') {
+            alertify.delay(5000).error("Please enter your matric number!");
+            return;
+        }
 
-//                     doRequest('api.php?fetchDataMatrix', 'studentId=' + formData.id, true, function (data) {
+        blockLoadingBox(true);
 
-//                         if (data != '') {
-//                             data = JSON.parse(data);
-//                             var elemUiTMSelect = document.querySelector('#listfaculty');
-//                             automatic_fetch = true;
-//                             fetched_data = data['Courses']; // hand it over global variable
-//                             elemUiTMSelect.value = data['UiTMCode'];
-//                             elemUiTMSelect.dispatchEvent(new CustomEvent('change', {}));
-//                         }
-//                     });
-//                 }
-//             }
-//         })
+        doRequest('api.php?fetchDataMatrix', 'studentId=' + matricNo, true, function (data) {
+            if (data != '') {
+                var classes = JSON.parse(data);
+                renderMatricTimetable(classes);
+            }
+        });
 
-//     } catch (e) {
-//         alertify.delay(10000).error(e);
-//         blockLoadingBox(false);
-//     }
+    } catch (e) {
+        alertify.delay(10000).error(e);
+        blockLoadingBox(false);
+    }
 
-// };
+};
+
+function renderMatricTimetable(classes) {
+
+    try {
+
+        var info = [];
+        var exportData = [];
+        var minTime = 23.59, maxTime = 0.0;
+
+        for (var i = 0; i < classes.length; i++) {
+            var cls = classes[i];
+
+            var [day, startTime, endTime] = parseDayTime(cls.day_time);
+            startTime = convertDate(startTime);
+            endTime = convertDate(endTime);
+
+            minTime = Math.min(startTime, minTime);
+            maxTime = Math.max(endTime, maxTime);
+
+            var start = startTime.toString().split('.');
+            var end = endTime.toString().split('.');
+
+            var endFirst = !start[1] ? 0 : parseFloat(start[1]);
+            var endSecon = !end[1] ? 0 : parseFloat(end[1]);
+
+            var name = '<h5>' + cls.subject + '</h5>' +
+                '<p><i>' + cls.classroom + '</i></p>' +
+                '<p>' + startTime + '-' + endTime + '</p>';
+
+            info.push({
+                name: name,
+                loc: day,
+                startH: parseFloat(start[0]),
+                startM: endFirst,
+                endH: parseFloat(end[0]),
+                endM: endSecon
+            });
+
+            exportData.push({
+                day: day,
+                subject: cls.subject,
+                group: cls.group,
+                classroom: cls.classroom,
+                class_start: startTime,
+                class_end: endTime
+            });
+        }
+
+        // convert array to JSON, append to textarea for fetching later
+        document.getElementById('exportData').value = JSON.stringify(exportData);
+
+        var timetable = new Timetable();
+        timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
+        timetable.addLocations(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
+
+        for (var i = 0; i < info.length; i++) {
+            timetable.addEvent(info[i].name, info[i].loc,
+                    new Date(0, 0, 0, info[i].startH, info[i].startM),
+                    new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
+        }
+
+        var renderer = new Timetable.Renderer(timetable);
+
+        // remove previous table before drawing new one
+        document.querySelector('.timetable').innerHTML = '';
+
+        renderer.draw('.timetable');
+
+        // show tools section and set up colours
+        resetTableSubject();
+        changeColours('default');
+        listSubjectsColour();
+        document.getElementById("tools").style.display = 'block';
+
+        alertify.success("Timetable fetched successfully!");
+        blockLoadingBox(false);
+
+    } catch (e) {
+        alertify.delay(10000).error(e);
+        blockLoadingBox(false);
+    }
+}
 
 function addNewRow() {
 
