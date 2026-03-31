@@ -1,7 +1,6 @@
 <?php
 
 require_once('./config.php');
-require_once('./modules/http_module.php');
 
 function icress_getJadual() {
 	$options = array('http' =>
@@ -126,7 +125,7 @@ function icress_getSubject_wrapper($path) {
 
 	$options = array('http' =>
 		array(
-				"header" => "Referer: https://simsweb4.uitm.edu.my/estudent/class_timetable/index.htm\nCookie: {$mainPageInfo['cookieHeader']}"
+				"header" => "Referer: https://simsweb4.uitm.edu.my/estudent/class_timetable/index.htm\r\nCookie: {$mainPageInfo['cookieHeader']}"
 		)
 	);
 	$context = stream_context_create($options);
@@ -176,63 +175,6 @@ function cleanHTML($html) {
 	$html = str_replace($rm_script, "", $html);
 	
 	return $html;
-}
-
-function getFormNames() {
-	$get = file_get_contents(getTimetableURL());
-	$http_response_header or die("Alert_Error: Icress timeout! Please try again later."); 
-	$get = cleanHTML($get);
-
-	// set error level
-	$internalErrors = libxml_use_internal_errors(true);
-	$htmlDoc = new DOMDocument();
-	$htmlDoc->loadHTML($get);
-	// Restore error level
-	libxml_use_internal_errors($internalErrors);
-
-	$selectCampusElem = $htmlDoc->getElementById('search_cam');
-	$selectCampus = $selectCampusElem->getAttribute('name');
-
-	// $searchFacultyElem = $htmlDoc->getElementById('search_faculty');
-	$searchFacultyElem = $htmlDoc->getElementById('eyJ0eXAiOiiiJKV1QiLCJhbGciOiJIUzI1NiJ9');
-	$searchFaculty = $searchFacultyElem->getAttribute('name');
-
-
-	return [
-		'search_campus' => $selectCampus,
-		'search_faculty' => $searchFaculty
-	];
-}
-
-function extractRedirect($url) {
-	$response = file_get_contents($url);
-	$http_response_header or die("Alert_Error: Icress timeout! Please try again later."); 
-
-	if (preg_match('/window\.location\.replace\([\s]{0,}[\"\'](.*)[\"\'][\s]{0,}\)/i', $response, $redirect_result['1']) ||
-		preg_match('/\$\(location\)\.attr\([\s]{0,}[\"\'][\s]{0,}href[\s]{0,}[\"\'][\s]{0,}\,[\s]{0,}[\"\'][\s]{0,}(.*)[\s]{0,}[\"\'][\s]{0,}\)/i', $response, $redirect_result['2']) ||
-		preg_match('/window\.location[\s]{0,}\=[\s]{0,}[\"\'](.*)[\"\']/i', $response, $redirect_result['3']) ||
-		preg_match('/window\.location\.href[\s]{0,}\=[\s]{0,}[\"\'](.*)[\"\']/i', $response, $redirect_result['4']) ||
-		preg_match('/window\.href[\s]{0,}\=[\s]{0,}[\"\'](.*)[\"\']/i', $response, $redirect_result['5']) ||
-		preg_match('/<[\s]*meta[\s]*http-equiv="?REFRESH"?' . '[\s]*content="?[0-9]*;[\s]*URL[\s]*=[\s]*([^>"]*)"?' . '[\s]*[\/]?[\s]*>/si', $response, $redirect_result['6'])) {
-		for ($i = 1; $i <= 6; $i++) {
-			if ($redirect_result[$i]) {
-				$window_location_final = $redirect_result[$i];
-				break;
-			}
-		}
-		$window_location_final = end($window_location_final);
-		if (substr($window_location_final, 0, 1) === '/' && trim($redirect_url)) {
-			$window_location_final = rtrim($redirect_url, '/') . $window_location_final;
-		}
-		$window_location_final = trim($window_location_final) ? trim($window_location_final) : '';
-		if ($window_location_final) {
-			$redirect_url = $window_location_final;
-		}    
-
-		return $redirect_url;
-	}
-
-	return '';
 }
 
 function getTimetableURL() {

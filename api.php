@@ -1,11 +1,23 @@
 <?php
 
-require_once('./modules/istudent_module.php');
 require_once('./modules/icress_module.php');
-/** @deprecated */
-// require_once('./modules/excel_module.php'); 
 
 CACHE_TYPE == 'file' ? require_once('./modules/file_module.php') : require_once('./modules/sqlite_module.php');
+
+if(isset($_GET['healthcheck'])) {
+    $url = getTimetableURL() . 'cfc/select.cfc?method=CAM_lII1II11I1lIIII11IIl1I111I&key=All&page=1&page_limit=30';
+    $referer = getTimetableURL() . 'index.htm';
+    $opts = ['http' => [
+        'method' => 'GET',
+        'header' => "Referer: $referer\r\n",
+        'timeout' => 10,
+    ]];
+    $ctx = stream_context_create($opts);
+    $result = @file_get_contents($url, false, $ctx);
+    $up = $result !== false && strpos($result, 'results') !== false;
+    header('Content-Type: application/json');
+    die(json_encode(['up' => $up]));
+}
 
 if(isset($_GET['getlist'])) {
     die(CACHE_TYPE == 'file' ? file_getJadual()
@@ -34,44 +46,56 @@ if(isset($_GET['fetchDataMatrix'])) {
     if(!empty($_POST['studentId'])) {
 
         try {
+            $matricNo = $_POST['studentId'];
+            $url = "https://cdn.uitm.link/jadual/baru/{$matricNo}.json";
 
-            $obj = new IStudent($_POST['studentId']);
+            $opts = ['http' => [
+                'method' => 'GET',
+                'header' => "User-Agent: Mozilla/5.0\r\nReferer: https://mystudent.uitm.edu.my/\r\n",
+                'timeout' => 15,
+            ]];
+            $ctx = stream_context_create($opts);
+            $result = @file_get_contents($url, false, $ctx);
 
-            $courses = $obj->getCourses();
-            $uitmcode = $obj->getUiTMCode();
-
-            if($courses === null || $uitmcode === false) {
-                throw new Exception("Can't fetch resources for this student Id (" . $_POST['studentId'] . ") !");
+            if ($result === false) {
+                throw new Exception("Failed to fetch timetable for matric no: {$matricNo}. Server may be down.");
             }
 
-            die(json_encode(array(
-                'Courses' => $courses,
-                'UiTMCode' => $uitmcode)));
+            $data = json_decode($result, true);
+            if (!$data) {
+                throw new Exception("No timetable data found for matric no: {$matricNo}");
+            }
+
+            // Collect unique classes from CDN timetable data
+            $classes = [];
+            $seen = [];
+            foreach ($data as $day) {
+                if (empty($day['jadual'])) continue;
+                foreach ($day['jadual'] as $cls) {
+                    $key = $day['hari'] . '-' . $cls['courseid'] . '-' . $cls['masa'];
+                    if (isset($seen[$key])) continue;
+                    $seen[$key] = true;
+
+                    $masa = preg_replace('/\s*-\s*/', '-', $cls['masa']);
+                    $classes[] = [
+                        'day_time' => strtoupper($day['hari']) . ' ( ' . $masa . ' )',
+                        'subject' => $cls['courseid'] ?? '',
+                        'subject_name' => $cls['course_desc'] ?? '',
+                        'group' => $cls['groups'] ?? '',
+                        'classroom' => $cls['bilik'] ?? '',
+                        'lecturer' => $cls['lecturer'] ?? '',
+                    ];
+                }
+            }
+
+            if (empty($classes)) {
+                throw new Exception("No courses found for matric no: {$matricNo}");
+            }
+
+            die(json_encode($classes));
 
         } catch (Exception $e) {
             die('Alert_Error:' . htmlentities($e->getMessage()));
         }
     }
-}
-
-/**
- * @deprecated
- */
-if(isset($_GET['exportexcel'])) {
-  if(!empty($_POST['timetableInfo'])) {
-    $obj = new Excel();
-    $result = $obj->exportExcel($_POST['timetableInfo']);
-    die($result);
-  }
-}
-
-/**
- * @deprecated
- */
-if(isset($_GET['importexcel'])) {
-  if(!empty($_FILES['excelFile'])) {
-    $obj = new Excel();
-    $result = $obj->importExcel($_FILES['excelFile']);
-    die($result);
-  }
 }

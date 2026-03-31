@@ -3,6 +3,23 @@ const { jsPDF } = window.jspdf;
 // js native equivalent of jQuery $(document).ready(function {..});
 document.addEventListener("DOMContentLoaded", function (event) {
 
+    // Check if iCRESS is up
+    var healthCheck = new XMLHttpRequest();
+    healthCheck.open("GET", "api.php?healthcheck", true);
+    healthCheck.onreadystatechange = function () {
+        if (this.readyState === 4 && this.status === 200) {
+            try {
+                var res = JSON.parse(this.responseText);
+                if (!res.up) {
+                    var banner = document.getElementById('icress-down-banner');
+                    banner.textContent = '\u26A0\uFE0F UiTM iCRESS system is currently down. Timetable data may be unavailable. This is an issue on UiTM\'s end, not ours. Please try again later.';
+                    banner.style.display = 'block';
+                }
+            } catch (e) {}
+        }
+    };
+    healthCheck.send();
+
     try {
         doRequest("api.php?getlist", null, true, function (data) {
 
@@ -51,11 +68,6 @@ var lboxStatus = true;
 var listsubject;
 var group = {};
 
-// used by automatic data fetcher
-var fetched_data = null;
-var automatic_fetch = false;
-var group_prev = {};
-var index_list = 0;
 
 // change if user choose any campus from select list
 document.querySelector('#listcampus').onchange = function () {
@@ -101,7 +113,7 @@ var showNewTable = function() {
 
                 var elem = document.querySelector('.row-select:last-child .select-subject');
 
-                elem.innerHTML = '<option value="">Select Subject</option>';
+                elem.innerHTML = '<option value="">Select</option>';
 
                 for (var i = 0; i < listsubject.length; i++) {
 
@@ -116,22 +128,6 @@ var showNewTable = function() {
 
                 // add new row
                 addNewRow();
-
-                // take over automatic fetcher from .login
-                if (automatic_fetch == true) {
-
-                    // remove if any subject non-exist in listsubject
-                    if (lboxStatus == false) {
-                        for (k in fetched_data) {
-                            if (listsubject.indexOf(k) < 0) {
-                                delete fetched_data[k];
-                            }
-                        }
-                    }
-
-                    // jump to processing function
-                    processCourses();
-                }
 
             }
         });
@@ -163,72 +159,6 @@ var clearTable = function() {
 		document.getElementById('tools').style.display = 'none';
 }
 
-var processCourses = function () {
-
-    try {
-
-        if (Object.keys(fetched_data).length > 0) {
-
-            var index = null;
-
-            // (bad) trick to get first key property from object
-            for (var k in fetched_data) {
-                index = k;
-                break;
-            }
-
-            // add into dictionary for later
-            group_prev[index_list] = fetched_data[index];
-
-            // delete each one element until "fetched_data" is empty
-            delete fetched_data[index];
-
-            var select_subject = document.querySelectorAll('.select-subject')[index_list++];
-
-            select_subject.value = index; // key = subject
-
-            // because .select-subject was created dynamically
-            // then we need to bubble it up
-            select_subject.dispatchEvent(new CustomEvent('change', {bubbles: true}));
-
-            // recursively do this again
-            processCourses();
-
-        } else {
-
-            // all done!
-            // now one last thing
-            // select the group based on student's courses
-
-            index_list = 0; // reset to initial index
-
-            for (k in group_prev) {
-
-                var select_group = document.querySelectorAll('.select-group')[index_list];
-                select_group.value = group_prev[k];
-
-                // because .select-group was created dynamically
-                // then we need to bubble it up
-                select_group.dispatchEvent(new CustomEvent('change', {bubbles: true}));
-
-                index_list++; // go to its next element
-            }
-
-            // reset all data
-            fetched_data = null;
-            automatic_fetch = false;
-            group_prev = {};
-            index_list = 0;
-
-            // hide loading box
-            blockLoadingBox(false);
-        }
-
-    } catch (e) {
-        alertify.delay(10000).error(e);
-        blockLoadingBox(false);
-    }
-};
 
 /*
  * using event delegation to set an event to the dynamic created elements
@@ -286,7 +216,7 @@ document.querySelector('.newtable').onchange = function (e) {
                     var elem = parent.querySelector('.select-group');
 
                     // clear previous data in select-group selectform
-                    elem.innerHTML = '<option value="">Select group</option>';
+                    elem.innerHTML = '<option value="">Select</option>';
 
                     for (k in group[subject]) {
                         var el = document.createElement('option');
@@ -295,26 +225,23 @@ document.querySelector('.newtable').onchange = function (e) {
                         elem.appendChild(el);
                     }
 
-                    if (automatic_fetch == true && Object.keys(fetched_data).length > 0) {
-
-                        // create mousedown event on .select-subject based on new index_list value
-                        // this is to ensure that javascript loads all the subjects before automatic system do it jobs
-                        document.querySelectorAll('.select-subject')[index_list].dispatchEvent(new CustomEvent('mousedown', {bubbles: true}));
-                    }
+                    // reinit only this specific group select
+                    elem.blobSelect.destroy();
+                    elem.blobSelect.init({ search: 'true' });
 
                 };
 
                 // fetch data if it does not exist in Object data yet
                 if (!group[subject]) {
-                    doRequest('api.php?getgroup', 'subject=' + subject + '&faculty=' + faculty + '&campus=' + campus, false, function (data) {
+                    doRequest('api.php?getgroup', 'subject=' + subject + '&faculty=' + faculty + '&campus=' + campus, true, function (data) {
                         if (data != '') {
                             group[subject] = JSON.parse(data);
                             exec();
                         }
                     });
+                } else {
+                    exec();
                 }
-
-                exec();
             }
 
         // delegate event for select-group
@@ -433,8 +360,6 @@ document.querySelector('.newtable').onchange = function (e) {
 
         }
 
-				initSelect('select-group');
-				
     } catch (e) {
         alertify.delay(10000).error(e);
         blockLoadingBox(false);
@@ -472,47 +397,132 @@ document.querySelector('.newtable').onclick = function (e) {
 
 }
 
-// Outdated script - not working anymore
-// document.querySelector('.login').onclick = function (e) {
+// Tab switching
+document.querySelectorAll('.input-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+        document.querySelectorAll('.input-tab').forEach(function (t) { t.classList.remove('active'); });
+        document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+        tab.classList.add('active');
+        document.getElementById(tab.getAttribute('data-tab')).classList.add('active');
 
-//     try {
+        // Hide subject/group table for non-campus tabs
+        var selectTable = document.getElementById('select-table');
+        if (tab.getAttribute('data-tab') !== 'tab-campus') {
+            selectTable.style.display = 'none';
+        } else if (document.getElementById('listcampus').value !== '') {
+            selectTable.style.display = 'block';
+        }
+    });
+});
 
-//         vex.dialog.open({
-//             message: 'Enter your UiTM\'s ID no (matrix no.) :',
-//             input: [
-//             '<input name="id" type="text" placeholder="Student\'s matrix ID" required />' +
-//             '(This is alpha feature! Consider manual adjusting if it doesn\'t works)'
-//             ].join(''),
-//             buttons: [
-//             extend({}, vex.dialog.buttons.YES, {text: 'Automatic fetch!'}),
-//             ],
-//             callback: function (formData) {
-//                 if (formData) {
+// Auto fetch by matric number
+document.querySelector('.login').onclick = function (e) {
 
-//                     // block loading box
-//                     blockLoadingBox(true);
+    try {
 
-//                     doRequest('api.php?fetchDataMatrix', 'studentId=' + formData.id, true, function (data) {
+        var matricNo = document.getElementById('matric-input').value.trim();
+        if (matricNo == '') {
+            alertify.delay(5000).error("Please enter your matric number!");
+            return;
+        }
 
-//                         if (data != '') {
-//                             data = JSON.parse(data);
-//                             var elemUiTMSelect = document.querySelector('#listfaculty');
-//                             automatic_fetch = true;
-//                             fetched_data = data['Courses']; // hand it over global variable
-//                             elemUiTMSelect.value = data['UiTMCode'];
-//                             elemUiTMSelect.dispatchEvent(new CustomEvent('change', {}));
-//                         }
-//                     });
-//                 }
-//             }
-//         })
+        blockLoadingBox(true);
 
-//     } catch (e) {
-//         alertify.delay(10000).error(e);
-//         blockLoadingBox(false);
-//     }
+        doRequest('api.php?fetchDataMatrix', 'studentId=' + matricNo, true, function (data) {
+            if (data != '') {
+                var classes = JSON.parse(data);
+                renderMatricTimetable(classes);
+            }
+        });
 
-// };
+    } catch (e) {
+        alertify.delay(10000).error(e);
+        blockLoadingBox(false);
+    }
+
+};
+
+function renderMatricTimetable(classes) {
+
+    try {
+
+        var info = [];
+        var exportData = [];
+        var minTime = 23.59, maxTime = 0.0;
+
+        for (var i = 0; i < classes.length; i++) {
+            var cls = classes[i];
+
+            var [day, startTime, endTime] = parseDayTime(cls.day_time);
+            startTime = convertDate(startTime);
+            endTime = convertDate(endTime);
+
+            minTime = Math.min(startTime, minTime);
+            maxTime = Math.max(endTime, maxTime);
+
+            var start = startTime.toString().split('.');
+            var end = endTime.toString().split('.');
+
+            var endFirst = !start[1] ? 0 : parseFloat(start[1]);
+            var endSecon = !end[1] ? 0 : parseFloat(end[1]);
+
+            var name = '<h5>' + cls.subject + '</h5>' +
+                '<p><i>' + cls.classroom + '</i></p>' +
+                '<p>' + startTime + '-' + endTime + '</p>';
+
+            info.push({
+                name: name,
+                loc: day,
+                startH: parseFloat(start[0]),
+                startM: endFirst,
+                endH: parseFloat(end[0]),
+                endM: endSecon
+            });
+
+            exportData.push({
+                day: day,
+                subject: cls.subject,
+                group: cls.group,
+                classroom: cls.classroom,
+                class_start: startTime,
+                class_end: endTime
+            });
+        }
+
+        // convert array to JSON, append to textarea for fetching later
+        document.getElementById('exportData').value = JSON.stringify(exportData);
+
+        var timetable = new Timetable();
+        timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
+        timetable.addLocations(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
+
+        for (var i = 0; i < info.length; i++) {
+            timetable.addEvent(info[i].name, info[i].loc,
+                    new Date(0, 0, 0, info[i].startH, info[i].startM),
+                    new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
+        }
+
+        var renderer = new Timetable.Renderer(timetable);
+
+        // remove previous table before drawing new one
+        document.querySelector('.timetable').innerHTML = '';
+
+        renderer.draw('.timetable');
+
+        // show tools section and set up colours
+        resetTableSubject();
+        changeColours('default');
+        listSubjectsColour();
+        document.getElementById("tools").style.display = 'block';
+
+        alertify.success("Timetable fetched successfully!");
+        blockLoadingBox(false);
+
+    } catch (e) {
+        alertify.delay(10000).error(e);
+        blockLoadingBox(false);
+    }
+}
 
 function addNewRow() {
 
@@ -770,24 +780,6 @@ function parents(nodeCur, parentMatch) {
     for (; !nodeCur.matches(parentMatch); nodeCur = nodeCur.parentNode) {}
     return nodeCur;
 }
-
-/*
- * un-shamefully stole from youmightnotneedjquery.com
- * ;)
- */
-function extend(out) {
-    out = out || {};
-
-    for (var i = 1; i < arguments.length; i++) {
-        if (!arguments[i]) continue;
-        for (var key in arguments[i]) {
-            if (arguments[i].hasOwnProperty(key))
-                out[key] = arguments[i][key];
-        }
-    }
-
-    return out;
-};
 
 // Save (download) timetable as image
 function saveImg() {

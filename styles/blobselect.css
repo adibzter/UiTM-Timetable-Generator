@@ -49,7 +49,7 @@
   border-color: #555;
 }
 .blobselect.is-open {
-  z-index: 1;
+  z-index: 1000;
   border-color: #2980b9;
 }
 .blobselect.is-disabled {
