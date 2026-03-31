@@ -126,7 +126,7 @@ function icress_getSubject_wrapper($path) {
 
 	$options = array('http' =>
 		array(
-				"header" => "Referer: https://simsweb4.uitm.edu.my/estudent/class_timetable/index.htm\nCookie: {$mainPageInfo['cookieHeader']}"
+				"header" => "Referer: https://simsweb4.uitm.edu.my/estudent/class_timetable/index.htm\r\nCookie: {$mainPageInfo['cookieHeader']}"
 		)
 	);
 	$context = stream_context_create($options);
