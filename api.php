@@ -7,6 +7,21 @@ require_once('./modules/icress_module.php');
 
 CACHE_TYPE == 'file' ? require_once('./modules/file_module.php') : require_once('./modules/sqlite_module.php');
 
+if(isset($_GET['healthcheck'])) {
+    $url = getTimetableURL() . 'cfc/select.cfc?method=CAM_lII1II11I1lIIII11IIl1I111I&key=All&page=1&page_limit=30';
+    $referer = getTimetableURL() . 'index.htm';
+    $opts = ['http' => [
+        'method' => 'GET',
+        'header' => "Referer: $referer\r\n",
+        'timeout' => 10,
+    ]];
+    $ctx = stream_context_create($opts);
+    $result = @file_get_contents($url, false, $ctx);
+    $up = $result !== false && strpos($result, 'results') !== false;
+    header('Content-Type: application/json');
+    die(json_encode(['up' => $up]));
+}
+
 if(isset($_GET['getlist'])) {
     die(CACHE_TYPE == 'file' ? file_getJadual()
         : db_getJadual());

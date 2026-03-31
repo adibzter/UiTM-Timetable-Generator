@@ -3,6 +3,23 @@ const { jsPDF } = window.jspdf;
 // js native equivalent of jQuery $(document).ready(function {..});
 document.addEventListener("DOMContentLoaded", function (event) {
 
+    // Check if iCRESS is up
+    var healthCheck = new XMLHttpRequest();
+    healthCheck.open("GET", "api.php?healthcheck", true);
+    healthCheck.onreadystatechange = function () {
+        if (this.readyState === 4 && this.status === 200) {
+            try {
+                var res = JSON.parse(this.responseText);
+                if (!res.up) {
+                    var banner = document.getElementById('icress-down-banner');
+                    banner.textContent = '\u26A0\uFE0F UiTM iCRESS system is currently down. Timetable data may be unavailable. This is an issue on UiTM\'s end, not ours. Please try again later.';
+                    banner.style.display = 'block';
+                }
+            } catch (e) {}
+        }
+    };
+    healthCheck.send();
+
     try {
         doRequest("api.php?getlist", null, true, function (data) {
 
