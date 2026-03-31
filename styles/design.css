@@ -1,7 +1,15 @@
-html,body{
+html{
   margin:0;
   padding:0;
-  height: 100%
+  height: 100%;
+}
+
+body{
+  margin:0;
+  padding:0;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 #icress-down-banner {
@@ -17,38 +25,45 @@ html,body{
 }
 
 .bannerapp {
-    margin: 0 auto;
-    background-color:#2d3033;
-	border:0 ;
-	cellpadding:0;
-	cellspacing:0 ;
-	border-collapse:collapse;
-	border-spacing:0;
-	color: #aebdc1;
-	font-size: 12px;
-	width:100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #2d3033;
+    color: #aebdc1;
+    font-size: 12px;
+    width: 100%;
+    padding: 0 40px;
+    box-sizing: border-box;
 }
 
-/*little update by afif
-css for footer, fixed "floating" footer*/
 .wrapper {
-    min-height: 100%;
-    margin-bottom: -50px;
+    flex: 1;
 }
 
 .bannerappfooter {
-    position: absolute;
-    height: 50px;
-    background-color:#2d3033;
-    border:0;
-    cellpadding:0;
-    cellspacing:0;
-    border-collapse:collapse;
-    border-spacing:0;
+    background-color: #2d3033;
     color: #aebdc1;
     font-size: 12px;
-    width:100%;
-    overflow:hidden;
+    width: 100%;
+    text-align: center;
+    padding: 20px 40px;
+    box-sizing: border-box;
+}
+
+.footer-disclaimer {
+    margin-bottom: 16px;
+}
+
+.footer-support {
+    margin-bottom: 16px;
+}
+
+.footer-credit {
+    padding-top: 10px;
+    color: white;
+    font-size: 14px;
+    line-height: 18px;
 }
 
 body {
@@ -65,15 +80,11 @@ body {
 }
 
 #project_title {
-    margin-left: 40px;
+    margin: 0;
 }
 
 footer {
     width: 100%;
-    height: 100px;
-    margin-bottom: 50px;
-    bottom: 0;
-    left: 0
 }
 
 a {
@@ -455,115 +466,67 @@ select {
     text-align: center;
 }
 
-#deslogouitm{
-	padding-top:10px;
-	padding-bottom:10px;
-	padding-right:2px;
+#deslogouitm {
+	padding: 10px;
+	flex-shrink: 0;
 }
 
-#destitle{
-	padding-top:10px;
-	padding-bottom:10px;
-	padding-left:1px;
+#destitle {
+	padding: 10px;
+	text-align: center;
+	flex-shrink: 0;
 }
 
-#destabletodevteam{
-	align:center;
-	border:0;
-	cellpadding:0;
-	cellspacing:0;
-	border-collapse:collapse;
-	border-spacing:0;
+.anniversary {
+	color: #aebdc1;
+	font-size: 12px;
 }
 
-.destd{
-	align:center;
-	padding: 32px 12px 0 12px;
-}
-
-.desinfodevteam{
-	mso-line-height-rule:exactly;
-	-webkit-font-smoothing:antialiased;
-	-ms-text-size-adjust:none;
-	-webkit-text-size-adjust:none;
+#desgithub {
+	border: 1px solid #aebdc1;
+	border-radius: 20px;
 	color: white;
-	font-family: 'Open Sans', Verdana, Helvetica, Arial, sans-serif;
-	font-size: 14px;
-	line-height: 18px;
-	padding: 32px 20px 0 20px;
-}
-
-.destb1{
-	align:center;
-	border:0;
-	cellpadding:0;
-	cellspacing:0;
-	border-collapse:collapse;
-	border-spacing:0;
-}
-
-.destb2{
-	align:center;
-	border:0;
-	cellpadding:0;
-	cellspacing:0;
-	border-collapse:collapse;
-	border-spacing:0;
-	max-width: 384px;
-	width:100%
-}
-
-#desneedhelp{
-	align:left;
-	mso-line-height-rule:exactly;
-	-webkit-font-smoothing:antialiased;
-	-ms-text-size-adjust:none;
-	-webkit-text-size-adjust:none;
-	color: white;
-	font-family: 'Open Sans', Verdana, Helvetica, Arial, sans-serif;
-	font-size: 16px;
-	line-height: 21px;
-	padding-top: 24px;"
-}
-
-#desgithub{
-	background-color:#2d3033;
-	border:1px solid #aebdc1;
-	border-radius:20px;
-	color:white;
-	display:inline-block;
-	font-family:'Open Sans', Verdana, Helvetica, Arial, sans-serif;
-	font-size:13px;
-	font-weight:300;
-	line-height:40px;
-	text-align:center;
-	text-decoration:none;
-	width:150px;
-	-webkit-text-size-adjust:none;
+	display: inline-block;
+	font-size: 13px;
+	text-align: center;
+	text-decoration: none;
+	padding: 8px 20px;
 	text-transform: uppercase;
-	mso-hide:all;
-	padding-top:10px;
-	padding-bottom:3px;
 }
 
-#tdgithub{
-	align:center;
-	padding: 16px 16px 0 16px;
+#desgithub img {
+	vertical-align: middle;
+	margin-right: 6px;
 }
 
 /*little update by afif
 css for mobile view*/
 @media screen and (max-width: 600px) {
-    /*hide logo when in mobile view*/
-    #deslogouitm{
+    #deslogouitm {
         display: none;
     }
-    /*set width of select box to 100%, so it fixed the screen size*/
-    select{
+    .bannerapp {
+        justify-content: center;
+        padding: 10px;
+    }
+    #destitle {
+        text-align: center;
+    }
+    select {
         width: 100%;
     }
-    /*set width of select table, so it fixed to screen size*/
     #select-table {
         width: 100%;
+    }
+    .tab-content {
+        max-width: 100%;
+    }
+    .input-tabs {
+        width: 100%;
+    }
+    .input-tab {
+        flex: 1;
+        font-size: 13px;
+        padding: 10px 8px;
     }
 }

@@ -45,25 +45,21 @@ A little update to the frontend, now support mobile view. by - afif
 <!-- start wrapper - use to fix the footer -->
 <div class="wrapper">
 
-	<!--aku tambah design unter header bg nampak kemas dan lagi elok also link ke istudent portal dkt gmbar uitm-->
-	<table class="bannerapp">
-		<tr>
-			<td align="center" id="deslogouitm">
-				<a href="https://istudent.uitm.edu.my/isp/index_isp.htm" title="UiTM Student Portal" alt="UiTM Student Portal" target="blank">
-					<img src="./img/uitm.jpg" width="230px"/>
+	<div class="bannerapp">
+		<div id="deslogouitm">
+			<a href="https://istudent.uitm.edu.my/isp/index_isp.htm" title="UiTM Student Portal" target="blank">
+				<img src="./img/uitm.jpg" width="230px"/>
+			</a>
+		</div>
+		<div id="destitle">
+			<h1 id="project_title">
+				<a href="./index.html" title="Generate UiTM Class Timetable" style="color:white">
+					UiTM Timetable<br>Generator
 				</a>
-			</td>
-			<td align="center" id="destitle">
-				<h1 id="project_title">
-          <a href="./index.html" title="Generate UiTM Class Timetable" style="color:white">
-    				UiTM Timetable<br>
-    				Generator <br>
-          </a>
-
-        </h1>
-			</td>
-		</tr>
-	</table>
+			</h1>
+			<span class="anniversary">🎂 10 years (2016 — 2026)</span>
+		</div>
+	</div>
 	<br><br>
   <div class='inputTimetable'>
 
@@ -175,62 +171,26 @@ A little update to the frontend, now support mobile view. by - afif
 
 </div> <!-- end wrapper -->
 
-	<!--footer yg aku design skali dgn link to dev. team-->
-	<table class="bannerappfooter">
-		<tr>
-			<td align="center">
-				<div style="margin-top: 10px">
-					<i>We are not affiliated, associated, authorized, endorsed by, or in any way officially connected with<br>Universiti Teknology MARA (UiTM), or any of its subsidiaries or its affiliates.<br>The official UiTM website can
-					be found at <a href="https://www.uitm.edu.my/">https://www.uitm.edu.my/</a></i>
-				</div>
-				<table class="destb1">
-					<tr>
-						<td id="desneedhelp">
-						Have questions or need assistance?
-						</td>
-					</tr>
-				</table>
-				<table class="destb1">
-					<tr>
-						<td align="center">
-							<table class="destb2">
-								<tr>
-									<td style="font-size: 0; text-align: center;">
-										<div style="display: inline-block;">
-											<table class="destb1" width="182">
-												<tr>
-													<td id="tdgithub">
-
-														<a href="https://github.com/afzafri/UiTM-Timetable-Generator/issues" target="blank" id="desgithub">
-															<img alt="Github Icon" border="0" height="40" src="img/git.png" width="40">
-															<br>
-															Support
-														</a>
-													</td>
-												</tr>
-											</table>
-										</div>
-									</td>
-								</tr>
-							</table>
-						</td>
-					</tr>
-				</table>
-				<table class="destb1">
-					<tr>
-						<td align="center" class="desinfodevteam">
-							<span>
-								An Open Source Project<br>
-								&copy; 2016 Afif, Mohd Shahril & Syed<br>
-								Diploma in Computer Science (CS110)<br>
-								UiTM Perlis
-							</span>
-						</td>
-					</tr>
-				</table>
-			</td>
-		</tr>
-	</table>
+	<footer class="bannerappfooter">
+		<div class="footer-disclaimer">
+			<i>We are not affiliated, associated, authorized, endorsed by, or in any way officially connected with
+			Universiti Teknologi MARA (UiTM), or any of its subsidiaries or its affiliates.
+			The official UiTM website can be found at <a href="https://www.uitm.edu.my/">https://www.uitm.edu.my/</a></i>
+		</div>
+		<div class="footer-support">
+			Have questions or need assistance?
+			<br><br>
+			<a href="https://github.com/afzafri/UiTM-Timetable-Generator/issues" target="blank" id="desgithub">
+				<img alt="Github Icon" height="20" src="img/git.png" width="20"> Support
+			</a>
+		</div>
+		<div class="footer-credit">
+			An Open Source Project<br>
+			&copy; 2016 Afif, Mohd Shahril & Syed<br>
+			Diploma in Computer Science (CS110)<br>
+			UiTM Perlis
+		</div>
+	</footer>
 
 	<div class="se-pre-con"></div>
 
