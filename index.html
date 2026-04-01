@@ -1,40 +1,42 @@
 <!--
 Project : UiTM Timetable Generator
-Description : Fetch and generate timetable from iCress
-Created by : Afif Zafri & Mohd Shahril
-Credit : Mohd Shahril (regex code and major code overhaul & improvement)
+Description : Fetch and generate timetable from iCRESS
+Created by : Afif Zafri, Mohd Shahril & Syed Muhamad Danial
+Maintainer : Adib Zaini
 Created Date : 24/1/16
-UPDATE 10/4/16
-Add Timetable.js javascript plugin to create responsive timetable.
-UPDATE 13/4/16
-Major code overhaul and improvement
-Design and touch up by : Syed Muhamad Danial
-UPDATE 1/12/16
-A little update to the frontend, now support mobile view. by - afif
+Updated Date : 1/4/26
 -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-    <meta content="utf-8" http-equiv="encoding">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>UiTM Timetable Generator - Free Class Schedule Builder</title>
+    <meta name="description" content="Generate and view your UiTM class timetable. Select your campus and courses, or auto-fetch by matric number. Export to image, PDF, or Excel.">
+    <meta name="keywords" content="UiTM, timetable, iCRESS, generator, class schedule, jadual, kelas, universiti teknologi mara, matric, semester">
+    <meta name="author" content="Afif Zafri, Mohd Shahril, Syed Muhamad Danial, Adib">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://uitmtimetable.com/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://uitmtimetable.com/">
+    <meta property="og:title" content="UiTM Timetable Generator - Free Class Schedule Builder">
+    <meta property="og:description" content="Generate and view your UiTM class timetable. Select your campus and courses, or auto-fetch by matric number.">
+    <meta property="og:image" content="https://uitmtimetable.com/img/uitm.jpg">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="UiTM Timetable Generator">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="UiTM Timetable Generator - Free Class Schedule Builder">
+    <meta name="twitter:description" content="Generate and view your UiTM class timetable. Select your campus and courses, or auto-fetch by matric number.">
+    <meta name="twitter:image" content="https://uitmtimetable.com/img/uitm.jpg">
+
     <link href="favicon.ico" rel="shortcut icon">
     <link rel="stylesheet" href="./styles/timetablejs.css">
     <link rel="stylesheet" type="text/css" href="./styles/design.css">
-    <link rel="stylesheet" type="text/css" href="./styles/vex.css">
-    <link rel="stylesheet" type="text/css" href="./styles/vex-theme-os.css">
     <link rel="stylesheet" type="text/css" href="./styles/blobselect.css">
-    <!-- scale down/resize page content to fix screen width, as for mobile view -->
-    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
-    <title>UiTM Timetable Generator</title>
-    <meta name="description" content="Fetch and Create UiTM Courses Timetable">
-    <meta name="keywords" content="UiTM, timetable, iCress, generator, creator, timetable creator, open source">
-    <meta property="og:description" content="Fetch and Create UiTM Courses Timetable"/>
-    <meta property="twitter:title" content="UiTM Timetable Generator"/>
-    <meta property="og:image" content="http://uitmtimetable.com/img/uitm.jpg"/>
-    <meta property="og:title" content="UiTM Timetable Generator"/>
-    <meta property="og:locale" content="en_US"/>
-    <meta property="og:site_name" content="UiTM Timetable Generator"/>
-
 </head>
 <body>
 
@@ -72,7 +74,7 @@ A little update to the frontend, now support mobile view. by - afif
     <div class="tab-content">
 
       <div id="tab-campus" class="tab-panel active">
-        <center>
+        <div class="text-center">
           <select name='campus' id="listcampus" class="select-campus">
             <option value=''>Select Campus</option>
           </select>
@@ -81,24 +83,24 @@ A little update to the frontend, now support mobile view. by - afif
               <option value=''>Select Faculty</option>
             </select>
           </div>
-        </center>
+        </div>
       </div>
 
       <div id="tab-matric" class="tab-panel">
-        <center>
+        <div class="text-center">
           <input type="text" id="matric-input" placeholder="Enter matric number e.g. 2024123456" />
           <br><br>
           <button type="button" class="button -dark login">Fetch Timetable</button>
-        </center>
+        </div>
       </div>
 
       <div id="tab-import" class="tab-panel">
-        <center>
+        <div class="text-center">
           <div class="upload-btn-wrapper">
             <button class="btn">Import Excel (.xlsx) file</button>
             <input type="file" id="excelFile" onchange="return importExcel()"/>
           </div>
-        </center>
+        </div>
       </div>
 
     </div>
@@ -126,7 +128,7 @@ A little update to the frontend, now support mobile view. by - afif
 
 		<!-- change timetable event colours -->
 		<div id="changeColoursTool">
-		<center>
+		<div class="text-center">
 			<fieldset style="display: inline;">
 				<legend><b><u>Customize colours</u></b></legend>
 
@@ -149,7 +151,7 @@ A little update to the frontend, now support mobile view. by - afif
 				<br>
 				<a href="#" onclick="return changeColours('default')"><i>Reset default</i></a>
 			</fieldset>
-		</center>
+		</div>
 		<br><br>
 		</div>
 
@@ -183,6 +185,8 @@ A little update to the frontend, now support mobile view. by - afif
 			<a href="https://github.com/afzafri/UiTM-Timetable-Generator/issues" target="blank" id="desgithub">
 				<img alt="Github Icon" height="20" src="img/git.png" width="20"> Support
 			</a>
+			<br><br>
+			Maintained by Adib
 		</div>
 		<div class="footer-credit">
 			An Open Source Project<br>
@@ -196,7 +200,6 @@ A little update to the frontend, now support mobile view. by - afif
 
 	<script src='./scripts/external/alertify.min.js'></script>
 	<script src='./scripts/external/timetable.js'></script>
-	<script src='./scripts/external/vex.combined.min.js'></script>
 	<script src='./scripts/external/html2canvas.min.js'></script>
 	<script src='./scripts/external/jspdf.umd.min.js'></script>
   	<script src='./scripts/external/blobselect.min.js'></script>

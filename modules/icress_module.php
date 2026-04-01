@@ -154,12 +154,16 @@ function icress_getSubject_wrapper($path) {
 		$tableDatas = [];
 		foreach($row->childNodes as $tableData) {
 			if (strcmp($tableData->nodeName, 'td') === 0) {
-				array_push($tableDatas, $tableData->nodeValue);
+				array_push($tableDatas, trim($tableData->nodeValue));
 			}
 		}
 
-		$group = trim($row->childNodes[5]->nodeValue);
-		array_shift($tableDatas);
+		if (count($tableDatas) < 3) continue;
+
+		// td[0]=no, td[1]=day_time, td[2]=group, td[3]=mode, td[4]=attempt, td[5]=classroom, ...
+		$group = $tableDatas[2];
+		$tableDatas[1] = normalizeTime($tableDatas[1]); // fix "14:00 PM" -> "2:00 PM"
+		array_shift($tableDatas); // remove row number
 		$groups[$group][] = $tableDatas;
 	}
 
@@ -175,6 +179,23 @@ function cleanHTML($html) {
 	$html = str_replace($rm_script, "", $html);
 	
 	return $html;
+}
+
+function normalizeTime($time) {
+	// Convert nonsensical formats like "14:00 PM" or "08:00 AM" to proper 12-hour format
+	return preg_replace_callback('/(\d{1,2}):(\d{2})\s*(AM|PM)/i', function($m) {
+		$hour = (int) $m[1];
+		$min = $m[2];
+		if ($hour >= 13) {
+			return ($hour - 12) . ':' . $min . ' PM';
+		} else if ($hour == 12) {
+			return '12:' . $min . ' PM';
+		} else if ($hour == 0) {
+			return '12:' . $min . ' AM';
+		} else {
+			return $hour . ':' . $min . ($hour >= 12 ? ' PM' : ' AM');
+		}
+	}, $time);
 }
 
 function getTimetableURL() {

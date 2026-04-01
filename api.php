@@ -77,6 +77,7 @@ if(isset($_GET['fetchDataMatrix'])) {
                     $seen[$key] = true;
 
                     $masa = preg_replace('/\s*-\s*/', '-', $cls['masa']);
+                    $masa = normalizeTime($masa);
                     $classes[] = [
                         'day_time' => strtoupper($day['hari']) . ' ( ' . $masa . ' )',
                         'subject' => $cls['courseid'] ?? '',

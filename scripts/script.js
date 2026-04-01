@@ -15,12 +15,14 @@ document.addEventListener("DOMContentLoaded", function (event) {
                     banner.textContent = '\u26A0\uFE0F UiTM iCRESS system is currently down. Timetable data may be unavailable. This is an issue on UiTM\'s end, not ours. Please try again later.';
                     banner.style.display = 'block';
                 }
-            } catch (e) {}
+            } catch (e) { console.warn('Session restore error:', e); }
         }
     };
     healthCheck.send();
 
     try {
+        var listsLoaded = 0;
+
         doRequest("api.php?getlist", null, true, function (data) {
 
             let campuses = JSON.parse(data);
@@ -34,6 +36,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
             }
 
             initSelect('select-campus');
+            if (++listsLoaded === 2) restoreLastSession();
         });
 
         doRequest("api.php?getfaculty", null, true, function (data) {
@@ -49,9 +52,8 @@ document.addEventListener("DOMContentLoaded", function (event) {
             }
 
             initSelect('select-faculty');
+            if (++listsLoaded === 2) restoreLastSession();
         });
-
-        vex.defaultOptions.className = 'vex-theme-os';
 
     } catch (e) {
         alertify.delay(10000).error(e);
@@ -74,10 +76,17 @@ document.querySelector('#listcampus').onchange = function () {
 
 		// If campus B (Selangor) selected
 		let code = document.querySelector('#listcampus').value;
+
+		localStorage.setItem('lastCampus', code);
+		localStorage.setItem('lastFaculty', '');
+		localStorage.setItem('lastMode', 'campus');
+		localStorage.removeItem('lastMatric');
+		localStorage.removeItem('savedTimetable');
+
 		if (code[0] === 'B') {
 				document.querySelector('#listfaculty').value = '';
 				document.querySelector('#div-faculty').hidden = false;
-				
+
 				clearTable();
 
 				return;
@@ -90,6 +99,9 @@ document.querySelector('#listcampus').onchange = function () {
 }
 
 document.querySelector('#listfaculty').onchange = function () {
+		localStorage.setItem('lastFaculty', document.querySelector('#listfaculty').value);
+		localStorage.setItem('lastMode', 'campus');
+		localStorage.removeItem('lastMatric');
 		showNewTable();
 }
 
@@ -150,7 +162,7 @@ var clearTable = function() {
 		document.querySelector('.timetable').innerHTML = '';
 
 		// change property of select-table depend on user selected choice
-		document.querySelector('#select-table').style.display = this.value != '' ? 'block' : 'none';
+		document.querySelector('#select-table').style.display = document.querySelector('#listcampus').value != '' ? 'block' : 'none';
 
 		// reset colors input and hide the tools section before render new table
 		resetTableSubject();
@@ -255,6 +267,7 @@ document.querySelector('.newtable').onchange = function (e) {
             for (var i = 0; i < groups.length; i++) {
                 if (groups[i].selectedIndex >= 0 && groups[i].value != '') {
                     var ssubj = parents(groups[i], '.row-select').querySelector('.select-subject');
+                    if (!group[ssubj.value] || !group[ssubj.value][groups[i].value]) continue;
                     datagroup[ssubj.value] = group[ssubj.value][groups[i].value];
                     canuse.push(groups[i]);
                 }
@@ -307,7 +320,7 @@ document.querySelector('.newtable').onchange = function (e) {
 
                     var name = '<h5>' + k + '</h5>' +
                         '<p><i>' + classroom + '</i></p>' +
-                        '<p>' + classStart + '-' + classEnd + '</p>';
+                        '<p>' + formatTime(classStart) + ' - ' + formatTime(classEnd) + '</p>';
 
                     info.push({
                         name: name,
@@ -357,6 +370,8 @@ document.querySelector('.newtable').onchange = function (e) {
             changeColours('default');
             listSubjectsColour();
             document.getElementById("tools").style.display = 'block';
+
+            saveTimetableState();
 
         }
 
@@ -415,9 +430,226 @@ document.querySelectorAll('.input-tab').forEach(function (tab) {
     });
 });
 
-// Auto fetch by matric number
-document.querySelector('.login').onclick = function (e) {
+// Save timetable state to localStorage
+function saveTimetableState() {
+    var exportDataStr = document.getElementById('exportData').value;
+    if (exportDataStr) {
+        localStorage.setItem('savedTimetable', exportDataStr);
+    }
 
+    // Save subject-group selections and group cache for campus mode
+    if (localStorage.getItem('lastMode') === 'campus') {
+        var rows = document.querySelectorAll('.row-select');
+        var selections = [];
+        for (var i = 0; i < rows.length; i++) {
+            var subj = rows[i].querySelector('.select-subject');
+            var grp = rows[i].querySelector('.select-group');
+            if (subj && subj.value) {
+                selections.push({ subject: subj.value, group: grp ? grp.value : '' });
+            }
+        }
+        localStorage.setItem('savedSelections', JSON.stringify(selections));
+    }
+}
+
+// Render timetable from saved exportData
+function renderFromSavedData(exportData) {
+    if (!exportData || exportData.length === 0) return;
+    var info = [];
+    var minTime = 23.59, maxTime = 0.0;
+
+    for (var i = 0; i < exportData.length; i++) {
+        var d = exportData[i];
+        var startTime = parseFloat(d.class_start);
+        var endTime = parseFloat(d.class_end);
+
+        minTime = Math.min(startTime, minTime);
+        maxTime = Math.max(endTime, maxTime);
+
+        var start = startTime.toString().split('.');
+        var end = endTime.toString().split('.');
+        var endFirst = !start[1] ? 0 : parseFloat(start[1]);
+        var endSecon = !end[1] ? 0 : parseFloat(end[1]);
+
+        var name = '<h5>' + d.subject + '</h5>' +
+            '<p><i>' + d.classroom + '</i></p>' +
+            '<p>' + formatTime(startTime) + ' - ' + formatTime(endTime) + '</p>';
+
+        info.push({
+            name: name,
+            loc: d.day,
+            startH: parseFloat(start[0]),
+            startM: endFirst,
+            endH: parseFloat(end[0]),
+            endM: endSecon
+        });
+    }
+
+    document.getElementById('exportData').value = JSON.stringify(exportData);
+
+    var timetable = new Timetable();
+    timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
+    timetable.addLocations(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
+
+    for (var i = 0; i < info.length; i++) {
+        timetable.addEvent(info[i].name, info[i].loc,
+                new Date(0, 0, 0, info[i].startH, info[i].startM),
+                new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
+    }
+
+    var renderer = new Timetable.Renderer(timetable);
+    document.querySelector('.timetable').innerHTML = '';
+    renderer.draw('.timetable');
+
+    resetTableSubject();
+    changeColours('default');
+    listSubjectsColour();
+    document.getElementById("tools").style.display = 'block';
+}
+
+// Restore last session from localStorage
+var sessionRestored = false;
+function restoreLastSession() {
+    if (sessionRestored) return;
+    sessionRestored = true;
+    var lastMode = localStorage.getItem('lastMode');
+    if (!lastMode) return;
+
+    // Switch to the right tab
+    if (lastMode === 'matric') {
+        document.querySelectorAll('.input-tab').forEach(function (t) { t.classList.remove('active'); });
+        document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+        document.querySelector('[data-tab="tab-matric"]').classList.add('active');
+        document.getElementById('tab-matric').classList.add('active');
+        document.getElementById('select-table').style.display = 'none';
+
+        var lastMatric = localStorage.getItem('lastMatric');
+        if (lastMatric) {
+            document.getElementById('matric-input').value = lastMatric;
+        }
+    } else if (lastMode === 'campus') {
+        var lastCampus = localStorage.getItem('lastCampus');
+        var lastFaculty = localStorage.getItem('lastFaculty');
+        if (lastCampus) {
+            document.querySelector('#listcampus').value = lastCampus;
+            if (lastCampus[0] === 'B') {
+                document.querySelector('#div-faculty').hidden = false;
+                if (lastFaculty) {
+                    document.querySelector('#listfaculty').value = lastFaculty;
+                }
+            }
+            initSelect('select-campus');
+            initSelect('select-faculty');
+        }
+
+        // Restore subject/group table
+        var savedSelections = localStorage.getItem('savedSelections');
+        if (savedSelections) {
+            try {
+                var selections = JSON.parse(savedSelections);
+
+                if (selections.length > 0) {
+                    var campus = lastCampus;
+                    var faculty = lastFaculty || '';
+                    doRequest('api.php?getsubject', 'campus=' + campus + '&faculty=' + faculty, true, function (data) {
+                        if (data != '') {
+                            listsubject = JSON.parse(data);
+
+                            for (var i = 0; i < selections.length; i++) {
+                                addNewRow();
+                                var rows = document.querySelectorAll('.row-select');
+                                var row = rows[rows.length - 1];
+                                var subjEl = row.querySelector('.select-subject');
+                                var grpEl = row.querySelector('.select-group');
+
+                                // Populate subject options
+                                subjEl.innerHTML = '<option value="">Select</option>';
+                                for (var j = 0; j < listsubject.length; j++) {
+                                    var el = document.createElement('option');
+                                    el.value = listsubject[j].subject;
+                                    el.innerHTML = listsubject[j].subject;
+                                    subjEl.appendChild(el);
+                                }
+                                subjEl.value = selections[i].subject;
+
+                                // Show only the saved selected group
+                                grpEl.innerHTML = '<option value="">Select</option>';
+                                if (selections[i].group) {
+                                    var el = document.createElement('option');
+                                    el.value = selections[i].group;
+                                    el.innerHTML = selections[i].group;
+                                    grpEl.appendChild(el);
+                                    grpEl.value = selections[i].group;
+                                }
+                            }
+
+                            // Add one empty row at the end
+                            addNewRow();
+                            var lastSubjEl = document.querySelector('.row-select:last-child .select-subject');
+                            lastSubjEl.innerHTML = '<option value="">Select</option>';
+                            for (var j = 0; j < listsubject.length; j++) {
+                                var el = document.createElement('option');
+                                el.value = listsubject[j].subject;
+                                el.innerHTML = listsubject[j].subject;
+                                lastSubjEl.appendChild(el);
+                            }
+
+                            initSelect('select-subject');
+                            initSelect('select-group');
+                            document.getElementById('select-table').style.display = 'block';
+
+                            // Silently fetch full group lists in background
+                            selections.forEach(function (sel) {
+                                if (!sel.subject) return;
+                                doRequest('api.php?getgroup', 'subject=' + sel.subject + '&faculty=' + faculty + '&campus=' + campus, true, function (data) {
+                                    if (data != '' && data != '[]' && data != '{}') {
+                                        group[sel.subject] = JSON.parse(data);
+
+                                        // Update the dropdown for this subject
+                                        var rows = document.querySelectorAll('.row-select');
+                                        for (var r = 0; r < rows.length; r++) {
+                                            var subjEl = rows[r].querySelector('.select-subject');
+                                            if (subjEl && subjEl.value === sel.subject) {
+                                                var grpEl = rows[r].querySelector('.select-group');
+                                                var currentVal = grpEl.value;
+                                                grpEl.innerHTML = '<option value="">Select</option>';
+                                                for (var k in group[sel.subject]) {
+                                                    var el = document.createElement('option');
+                                                    el.value = k;
+                                                    el.innerHTML = k;
+                                                    grpEl.appendChild(el);
+                                                }
+                                                grpEl.value = currentVal;
+                                                if (grpEl.blobSelect) {
+                                                    grpEl.blobSelect.destroy();
+                                                    grpEl.blobSelect.init({ search: 'true' });
+                                                }
+                                            }
+                                        }
+                                    }
+                                }, true); // silent - no loading spinner
+                            });
+                        }
+                    });
+                }
+            } catch (e) { console.warn('Session restore error:', e); }
+        }
+    }
+
+    // Render saved timetable if available
+    var savedTimetable = localStorage.getItem('savedTimetable');
+    if (savedTimetable) {
+        try {
+            var exportData = JSON.parse(savedTimetable);
+            if (exportData.length > 0) {
+                renderFromSavedData(exportData);
+            }
+        } catch (e) { console.warn('Session restore error:', e); }
+    }
+}
+
+// Auto fetch by matric number
+function fetchMatric() {
     try {
 
         var matricNo = document.getElementById('matric-input').value.trim();
@@ -431,6 +663,12 @@ document.querySelector('.login').onclick = function (e) {
         doRequest('api.php?fetchDataMatrix', 'studentId=' + matricNo, true, function (data) {
             if (data != '') {
                 var classes = JSON.parse(data);
+                localStorage.setItem('lastMatric', matricNo);
+                localStorage.setItem('lastMode', 'matric');
+                localStorage.removeItem('lastCampus');
+                localStorage.removeItem('lastFaculty');
+                localStorage.removeItem('savedSelections');
+                localStorage.removeItem('savedTimetable');
                 renderMatricTimetable(classes);
             }
         });
@@ -439,8 +677,14 @@ document.querySelector('.login').onclick = function (e) {
         alertify.delay(10000).error(e);
         blockLoadingBox(false);
     }
+}
 
-};
+document.querySelector('.login').onclick = fetchMatric;
+
+// Enter key on matric input
+document.getElementById('matric-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') fetchMatric();
+});
 
 function renderMatricTimetable(classes) {
 
@@ -468,7 +712,7 @@ function renderMatricTimetable(classes) {
 
             var name = '<h5>' + cls.subject + '</h5>' +
                 '<p><i>' + cls.classroom + '</i></p>' +
-                '<p>' + startTime + '-' + endTime + '</p>';
+                '<p>' + formatTime(startTime) + ' - ' + formatTime(endTime) + '</p>';
 
             info.push({
                 name: name,
@@ -516,6 +760,7 @@ function renderMatricTimetable(classes) {
         document.getElementById("tools").style.display = 'block';
 
         alertify.success("Timetable fetched successfully!");
+        saveTimetableState();
         blockLoadingBox(false);
 
     } catch (e) {
@@ -682,8 +927,10 @@ function convertDate(time) {
         // get either pm or am
         var dateIndi = time.substr(index - 1, 2);
 
-        if (dateIndi === 'pm' && getHour < 12) {
+        if (dateIndi.toLowerCase() === 'pm' && getHour < 12) {
             getHour += 12;
+        } else if (dateIndi.toLowerCase() === 'am' && getHour === 12) {
+            getHour = 0;
         }
 
         return getHour + '.' + getMinutes;
@@ -692,6 +939,15 @@ function convertDate(time) {
         alertify.delay(10000).error(e);
         blockLoadingBox(false);
     }
+}
+
+function formatTime(decimal) {
+    var parts = decimal.toString().split('.');
+    var h = parseInt(parts[0]);
+    var m = parts[1] ? parseInt(parts[1]) : 0;
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+    return h12 + ':' + (m < 10 ? '0' + m : m) + ' ' + ampm;
 }
 
 function convertHourToMinutes(time) {
@@ -716,40 +972,44 @@ function convertHourToMinutes(time) {
  * note that this is self home-made function, so least error checking is made into this code
  */
 
-function doRequest(url, postdata, async, func) {
+function doRequest(url, postdata, async, func, silent) {
 
     try {
 
         var http = new XMLHttpRequest();
         http.open("POST", url, async);
         http.onloadstart = function (e) {
-            blockLoadingBox(true);
+            if (!silent) blockLoadingBox(true);
         };
 
         http.onreadystatechange = function () {
-            blockLoadingBox(false);
+            if (!silent) blockLoadingBox(false);
             if (this.readyState === 4) {
                 if (this.status >= 200 && this.status < 400) {
                     if (this.responseText == '') {
-                        alertify.delay(20000).error("API returns nothing.\nMaybe an error have happened.\n Try again later...");
-                    } else if (this.responseText == '[]') {
-                        alertify.delay(20000).error("Request returns no data!\nNo internet connection or server problem?");
+                        if (!silent) alertify.delay(20000).error("API returns nothing.\nMaybe an error have happened.\n Try again later...");
+                    } else if (this.responseText == '[]' || this.responseText == '{}') {
+                        if (!silent) alertify.delay(10000).error("No data returned from iCRESS for this selection.");
                     } else if (this.responseText.includes("Alert_Error")) {
-                        var errormsg = this.responseText.split(':')[1].trim();
-                        alertify.delay(20000).error(errormsg);
+                        if (!silent) {
+                            var errormsg = this.responseText.split(':')[1].trim();
+                            alertify.delay(20000).error(errormsg);
+                        }
                     } else {
-                        alertify.delay(5000).success("Fetching data succeed!");
+                        if (!silent) alertify.delay(5000).success("Fetching data succeed!");
                         func(this.responseText);
                     }
                 } else {
-                    alertify.delay(20000).error("There is an error when doing an Ajax request!\nHTTP Error Code :" + this.status);
+                    if (!silent) alertify.delay(20000).error("There is an error when doing an Ajax request!\nHTTP Error Code :" + this.status);
                 }
             }
         };
 
         http.ontimeout = function () {
-            alertify.delay(20000).error('Error request! No internet or server problem?');
-            blockLoadingBox(false);
+            if (!silent) {
+                alertify.delay(20000).error('Error request! No internet or server problem?');
+                blockLoadingBox(false);
+            }
         };
 
         if (postdata != '' && postdata != null) {
@@ -973,7 +1233,7 @@ function importExcel() {
                         var classGroup = timetable[i][2];
                         var name = '<h5>' + subject + '</h5>' +
                                     '<p><i>' + classroom + '</i></p>' +
-                                    '<p>' + classStart + '-' + classEnd + '</p>';
+                                    '<p>' + formatTime(classStart) + ' - ' + formatTime(classEnd) + '</p>';
 
                         info.push({
                             name: name,

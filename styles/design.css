@@ -79,6 +79,14 @@ body {
     justify-content: center;
 }
 
+.text-center {
+    text-align: center;
+}
+
+.text-center .blobselect {
+    margin: 0 auto;
+}
+
 #project_title {
     margin: 0;
 }
