@@ -384,7 +384,7 @@ function saveTimetableState() {
         localStorage.setItem('savedTimetable', exportDataStr);
     }
 
-    // Save subject-group selections and group cache for campus mode
+    // Save subject-group selections for campus mode
     if (localStorage.getItem('lastMode') === 'campus') {
         var rows = document.querySelectorAll('.row-select');
         var selections = [];
@@ -396,6 +396,26 @@ function saveTimetableState() {
             }
         }
         localStorage.setItem('savedSelections', JSON.stringify(selections));
+    }
+}
+
+function saveColours() {
+    var events = document.getElementsByClassName('time-entry');
+    var colours = {};
+    var hasCustom = false;
+    for (var i = 0; i < events.length; i++) {
+        var name = events[i].getElementsByTagName('h5')[0].innerHTML;
+        var bg = events[i].style.backgroundColor;
+        var border = events[i].style.borderColor;
+        var text = events[i].style.color;
+        // Only save if inline styles are set (meaning user customized)
+        if (!colours[name] && (bg || border || text)) {
+            colours[name] = { bg: bg, border: border, text: text };
+            hasCustom = true;
+        }
+    }
+    if (hasCustom) {
+        localStorage.setItem('savedColours', JSON.stringify(colours));
     }
 }
 
@@ -456,7 +476,10 @@ function restoreLastSession() {
 
         // Restore subject/group table
         var savedSelections = localStorage.getItem('savedSelections');
-        if (savedSelections) {
+        if (!savedSelections || JSON.parse(savedSelections).length === 0) {
+            // No saved selections - just load subjects fresh
+            showNewTable();
+        } else if (savedSelections) {
             try {
                 var selections = JSON.parse(savedSelections);
 
@@ -495,19 +518,12 @@ function restoreLastSession() {
                                 }
                             }
 
-                            // Add one empty row at the end
-                            addNewRow();
-                            var lastSubjEl = document.querySelector('.row-select:last-child .select-subject');
-                            lastSubjEl.innerHTML = '<option value="">Select</option>';
-                            for (var j = 0; j < listsubject.length; j++) {
-                                var el = document.createElement('option');
-                                el.value = listsubject[j].subject;
-                                el.innerHTML = listsubject[j].subject;
-                                lastSubjEl.appendChild(el);
-                            }
-
+                            // Init blobselect on populated rows before adding empty row
                             initSelect('select-subject');
                             initSelect('select-group');
+
+                            // Add empty row AFTER init so blobselect doesn't touch it
+                            addNewRow();
                             document.getElementById('select-table').style.display = 'block';
 
                             // Silently fetch full group lists in background
@@ -908,9 +924,44 @@ function drawTimetable(info, exportData, minTime, maxTime) {
     renderer.draw('.timetable');
 
     resetTableSubject();
-    changeColours('default');
+    changeColours('init');
     listSubjectsColour();
+    restoreColours();
     document.getElementById("tools").style.display = 'block';
+}
+
+function restoreColours() {
+    var saved = localStorage.getItem('savedColours');
+    if (!saved) return;
+    try {
+        var colours = JSON.parse(saved);
+        var events = document.getElementsByClassName('time-entry');
+        for (var i = 0; i < events.length; i++) {
+            var name = events[i].getElementsByTagName('h5')[0].innerHTML;
+            if (colours[name]) {
+                if (colours[name].bg) events[i].style.backgroundColor = colours[name].bg;
+                if (colours[name].border) events[i].style.borderColor = colours[name].border;
+                if (colours[name].text) events[i].style.color = colours[name].text;
+            }
+        }
+
+        // Also update the colour pickers to match
+        for (var subject in colours) {
+            var bgPicker = document.getElementById('change_bg_color' + subject);
+            var borderPicker = document.getElementById('change_border_color' + subject);
+            var textPicker = document.getElementById('change_text_color' + subject);
+            if (bgPicker && colours[subject].bg) bgPicker.value = rgbToHex(colours[subject].bg);
+            if (borderPicker && colours[subject].border) borderPicker.value = rgbToHex(colours[subject].border);
+            if (textPicker && colours[subject].text) textPicker.value = rgbToHex(colours[subject].text);
+        }
+    } catch (e) { console.warn('Colour restore error:', e); }
+}
+
+function rgbToHex(rgb) {
+    if (rgb.charAt(0) === '#') return rgb;
+    var parts = rgb.match(/\d+/g);
+    if (!parts || parts.length < 3) return rgb;
+    return '#' + ((1 << 24) + (parseInt(parts[0]) << 16) + (parseInt(parts[1]) << 8) + parseInt(parts[2])).toString(16).slice(1);
 }
 
 // Build a timetable info entry from time data
@@ -1255,9 +1306,10 @@ function changeColours(type)
 
     // fetch choosen colors
     // check if type is set to 'default', set var value to default colors
-    var bg_color = (type != 'default') ? document.getElementById('change_bg_color').value : '#EC6A5E';
-    var border_color = (type != 'default') ? document.getElementById('change_border_color').value : '#e32c1b';
-    var text_color = (type != 'default') ? document.getElementById('change_text_color').value : '#ffffff';
+    var isReset = (type === 'default' || type === 'init');
+    var bg_color = !isReset ? document.getElementById('change_bg_color').value : '#4A90D9';
+    var border_color = !isReset ? document.getElementById('change_border_color').value : '#3A7BC8';
+    var text_color = !isReset ? document.getElementById('change_text_color').value : '#ffffff';
 
     // iterate through the nodes, change the colors
     for(var i=0; i<events.length; i++)
@@ -1267,13 +1319,28 @@ function changeColours(type)
         events[i].style.color = text_color;
     }
 
-    // if type is set to 'default' reset back the colors pickers to default colors
-    if(type == 'default')
+    // reset color pickers to default
+    if(isReset)
     {
-        document.getElementById('change_bg_color').value = '#EC6A5E';
-        document.getElementById('change_border_color').value = '#e32c1b';
+        document.getElementById('change_bg_color').value = '#4A90D9';
+        document.getElementById('change_border_color').value = '#3A7BC8';
         document.getElementById('change_text_color').value = '#ffffff';
+
+        // reset per-subject pickers too
+        var pickers = document.querySelectorAll('#subjectColorTable input[type="color"]');
+        for (var i = 0; i < pickers.length; i++) {
+            var id = pickers[i].id;
+            if (id.indexOf('change_bg_color') === 0) pickers[i].value = '#4A90D9';
+            else if (id.indexOf('change_border_color') === 0) pickers[i].value = '#3A7BC8';
+            else if (id.indexOf('change_text_color') === 0) pickers[i].value = '#ffffff';
+        }
+
+        // Only clear saved colours on explicit user reset, not on initial render
+        if (type === 'default') localStorage.removeItem('savedColours');
     }
+
+    // Only save colours on explicit user changes, not on init/default
+    if (!isReset) saveColours();
 }
 
 // Change event colours scheme for each subject
@@ -1299,6 +1366,8 @@ function changeSubjectColours(subject)
             events[i].style.color = text_color;
         }
     }
+
+    saveColours();
 }
 
 // function to fetch and list down the subjects for changing colors
@@ -1331,9 +1400,9 @@ function listSubjectsColour()
         var funcname = "changeSubjectColours('"+subjectsname[i]+"')";
 
         cell1.innerHTML = subjectsname[i];
-        cell2.innerHTML = '<input id="change_bg_color'+subjectsname[i]+'" type="color" onchange="return '+funcname+'">';
-        cell3.innerHTML = '<input id="change_border_color'+subjectsname[i]+'" type="color" onchange="return '+funcname+'">';
-        cell4.innerHTML = '<input id="change_text_color'+subjectsname[i]+'" type="color" onchange="return '+funcname+'">';
+        cell2.innerHTML = '<input id="change_bg_color'+subjectsname[i]+'" type="color" value="#4A90D9" onchange="return '+funcname+'">';
+        cell3.innerHTML = '<input id="change_border_color'+subjectsname[i]+'" type="color" value="#3A7BC8" onchange="return '+funcname+'">';
+        cell4.innerHTML = '<input id="change_text_color'+subjectsname[i]+'" type="color" value="#ffffff" onchange="return '+funcname+'">';
     }
 
 }

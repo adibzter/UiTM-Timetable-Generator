@@ -37,9 +37,6 @@ body{
     box-sizing: border-box;
 }
 
-.wrapper {
-    flex: 1;
-}
 
 .bannerappfooter {
     background-color: #2d3033;
@@ -87,6 +84,7 @@ body {
     margin: 0 auto;
 }
 
+
 #project_title {
     margin: 0;
 }
@@ -99,12 +97,89 @@ a {
     text-decoration: none
 }
 
+.tools-panel {
+    max-width: 600px;
+    margin: 0 auto 30px auto;
+    padding: 20px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+.tools-export {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.tools-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+    background: #2d3033;
+    border: none;
+    cursor: pointer;
+    flex: 1;
+    max-width: 180px;
+}
+
+.tools-btn:hover {
+    background: #444;
+}
+
+.tools-section-title {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.color-table {
+    margin: 0 auto 10px;
+    border-collapse: collapse;
+    text-align: center;
+    font-size: 13px;
+}
+
+.color-table th {
+    padding: 6px 14px;
+    background: #2d3033;
+    color: #fff;
+    font-weight: normal;
+}
+
+.color-table td {
+    padding: 4px 14px;
+    border-bottom: 1px solid #eee;
+}
+
+.color-table td:first-child {
+    font-weight: bold;
+    text-align: left;
+}
+
+.color-table input[type="color"] {
+    width: 30px;
+    height: 26px;
+    border: 1px solid #ddd;
+    padding: 0;
+    cursor: pointer;
+}
+
+.tools-reset {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 13px;
+    color: #999;
+}
+
 .timetable {
     display: flex;
     justify-content: center;
     width: 90%;
-    margin: 0 auto;
-    margin-bottom: 50px;
+    margin: 0 auto 30px;
     background-color: #FFFFFF;
 }
 
@@ -140,7 +215,7 @@ a {
 }
 
 .inputTimetable {
-    margin-bottom: 50px;
+    margin: 30px auto;
 }
 
 .input-tabs {
@@ -164,20 +239,20 @@ a {
 }
 
 .input-tab.active {
-    background: #fff;
+    background: #f9f9f9;
     color: #333;
-    border-bottom: 1px solid #fff;
+    border-bottom: 1px solid #f9f9f9;
     position: relative;
     z-index: 1;
 }
 
 .tab-content {
-    border: 1px solid #ccc;
+    border: 1px solid #ddd;
     border-radius: 0;
     padding: 15px 20px;
     max-width: 500px;
     margin: 0 auto;
-    background: #fff;
+    background: #f9f9f9;
     position: relative;
     top: -1px;
 }
@@ -201,24 +276,38 @@ a {
     border-radius: 0;
     width: 300px;
     text-align: center;
+    margin-bottom: 12px;
+}
+
+.wrapper {
+    flex: 1;
+    padding-bottom: 30px;
 }
 
 #select-table {
-    display: none; /* for first time hide it first */
-    /* un-hide if user had selected faculty from select */
+    display: none;
     width: 500px;
-    margin: 0 auto;
+    margin: 0 auto 30px;
 }
 
 .newtable {
     margin: 0 auto;
-    margin-bottom: 50px;
     border-collapse: collapse;
     width: 100%;
 }
 
+.newtable th {
+    background: #2d3033;
+    color: #fff;
+    font-weight: normal;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
 .newtable td {
-    background-color: #FFFFFF;
+    padding: 6px 8px;
+    border-bottom: 1px solid #eee;
+    background: #f9f9f9;
 }
 
 .newtable td select {
@@ -227,6 +316,8 @@ a {
 
 .newtable td:first-child {
     text-align: center;
+    color: #999;
+    font-size: 13px;
 }
 
 .newtable td:nth-child(2n+3) {
@@ -235,11 +326,6 @@ a {
 
 .newtable th:nth-child(even) {
     width: 100px;
-}
-
-.newtable th {
-    background-color: #211d70;
-    color: white;
 }
 
 .button {
@@ -311,12 +397,28 @@ a {
 }
 
 .button-delete {
-    background-image: url( '../img/delete-icon.ico' );
-    background-color: transparent;
-    overflow: hidden;
-    height: 28px;
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 0;
+    cursor: pointer;
     width: 28px;
-    border-radius: 50%;
+    height: 28px;
+    position: relative;
+}
+
+.button-delete::after {
+    content: '\00d7';
+    font-size: 20px;
+    color: #bbb;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.button-delete:hover::after {
+    color: #e74c3c;
 }
 
 .upload-btn-wrapper {
@@ -510,12 +612,16 @@ select {
 /*little update by afif
 css for mobile view*/
 @media screen and (max-width: 600px) {
-    #deslogouitm {
-        display: none;
+    .wrapper {
+        padding-left: 12px;
+        padding-right: 12px;
     }
     .bannerapp {
         justify-content: center;
         padding: 10px;
+    }
+    #deslogouitm {
+        display: none;
     }
     #destitle {
         text-align: center;
@@ -536,5 +642,9 @@ css for mobile view*/
         flex: 1;
         font-size: 13px;
         padding: 10px 8px;
+    }
+    .tools-panel {
+        margin-left: 0;
+        margin-right: 0;
     }
 }

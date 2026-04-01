@@ -6,6 +6,8 @@ Fetch and generate timetable from iCRESS UiTM.
 
 Official website: https://uitmtimetable.com (thanks [Adib](https://github.com/adibzter))
 
+![UiTM Timetable Generator](img/screenshot.png)
+
 ## Features
 
 - Select campus/faculty and manually pick subjects and groups
