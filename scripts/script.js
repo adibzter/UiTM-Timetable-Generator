@@ -599,6 +599,9 @@ function restoreLastSession() {
                             document.getElementById('select-table').style.display = 'block';
 
                             // Silently fetch full group lists in background
+                            var groupPending = selections.filter(function(s) { return !!s.subject; }).length;
+                            var freshExport = [];
+
                             selections.forEach(function (sel) {
                                 if (!sel.subject) return;
                                 doRequest('api.php?getgroup', 'subject=' + sel.subject + '&faculty=' + faculty + '&campus=' + campus, true, function (data) {
@@ -626,6 +629,35 @@ function restoreLastSession() {
                                                 }
                                             }
                                         }
+
+                                        // Collect fresh timetable data for this subject
+                                        if (sel.group && group[sel.subject][sel.group]) {
+                                            var groupRows = group[sel.subject][sel.group];
+                                            for (var j = 0; j < groupRows.length; j++) {
+                                                var parts = parseDayTime(groupRows[j][0]);
+                                                freshExport.push({
+                                                    day: parts[0],
+                                                    subject: sel.subject,
+                                                    group: sel.group,
+                                                    classroom: groupRows[j][4] || '',
+                                                    class_start: convertDate(parts[1]),
+                                                    class_end: convertDate(parts[2])
+                                                });
+                                            }
+                                        }
+                                    }
+
+                                    // When all group fetches done, update localStorage
+                                    groupPending--;
+                                    if (groupPending === 0 && freshExport.length > 0) {
+                                        var oldData = localStorage.getItem('savedTimetable');
+                                        var newData = JSON.stringify(freshExport);
+                                        if (oldData !== newData) {
+                                            localStorage.setItem('savedTimetable', newData);
+                                            document.getElementById('exportData').value = newData;
+                                            renderFromSavedData(freshExport);
+                                            console.log('Timetable updated from server');
+                                        }
                                     }
                                 }, true); // silent - no loading spinner
                             });
@@ -646,6 +678,42 @@ function restoreLastSession() {
             }
         } catch (e) { console.warn('Session restore error:', e); }
     }
+
+    // Background refresh for matric mode
+    if (lastMode === 'matric') {
+        var matric = localStorage.getItem('lastMatric');
+        if (matric) {
+            doRequest('api.php?fetchDataMatrix', 'studentId=' + matric, true, function (data) {
+                if (data != '') {
+                    var classes = JSON.parse(data);
+                    var freshExport = [];
+                    for (var i = 0; i < classes.length; i++) {
+                        var cls = classes[i];
+                        var parts = parseDayTime(cls.day_time);
+                        var start = convertDate(parts[1]);
+                        var end = convertDate(parts[2]);
+                        freshExport.push({
+                            day: parts[0],
+                            subject: cls.subject,
+                            group: cls.group,
+                            classroom: cls.classroom,
+                            class_start: start,
+                            class_end: end
+                        });
+                    }
+                    var oldData = localStorage.getItem('savedTimetable');
+                    var newData = JSON.stringify(freshExport);
+                    if (oldData !== newData) {
+                        localStorage.setItem('savedTimetable', newData);
+                        document.getElementById('exportData').value = newData;
+                        renderFromSavedData(freshExport);
+                        console.log('Timetable updated from server');
+                    }
+                }
+            }, true);
+        }
+    }
+    // Campus mode: background refresh already happens via getsubject + getgroup calls above
 }
 
 // Auto fetch by matric number
