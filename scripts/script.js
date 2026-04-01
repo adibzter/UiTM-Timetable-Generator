@@ -1038,28 +1038,34 @@ function parents(nodeCur, parentMatch) {
 function saveImg() {
 
     try {
-        // set viewport meta width, so even on mobile, page will rendered desktop mode. needed for full screenshot
-        var element = document.getElementsByName("viewport")[0];
-        element.setAttribute("content", "");
-        document.body.style.zoom="60%"; // zoom out the page, for low res screen
-
-        // use html2canvas js library, to convert the content into html5 "canvas"
         var timearea = document.getElementById("timetable");
-        html2canvas(timearea, { scale: 3 }).then((canvas) => {
-          // create new hyperlink with download attribute, set the image url, auto click the link to download
+        var section = timearea.querySelector('section');
+        var innerTime = section ? section.querySelector('time') : null;
+
+        // Get the full content width (including overflow hidden on mobile)
+        var fullWidth = innerTime ? innerTime.scrollWidth + (section.offsetLeft || 0) + 100 : timearea.scrollWidth + 100;
+
+        // Temporarily remove overflow and expand for full capture
+        var origOverflow = section ? section.style.overflow : '';
+        var origWidth = timearea.style.width;
+        if (section) section.style.overflow = 'visible';
+        timearea.style.width = fullWidth + 'px';
+
+        html2canvas(timearea, {
+            scale: 2,
+            scrollX: 0,
+            scrollY: 0,
+            width: fullWidth,
+            windowWidth: fullWidth
+        }).then(function (canvas) {
+          // Restore original styles
+          if (section) section.style.overflow = origOverflow;
+          timearea.style.width = origWidth;
+
           var link = document.createElement('a');
           link.download = 'timetable.png';
-          link.href = canvas
-            .toDataURL('image/png')
-            .replace('image/png', 'image/octet-stream');
+          link.href = canvas.toDataURL('image/png');
           link.click();
-
-          // restore back the responsive viewport meta and zoom leve
-          element.setAttribute(
-            'content',
-            'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'
-          );
-          document.body.style.zoom = '100%';
         });
     }
     catch (e) {
