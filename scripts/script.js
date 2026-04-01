@@ -281,7 +281,6 @@ document.querySelector('.newtable').onchange = function (e) {
             else
                 alertify.success("Successfully rendered!");
 
-            var places = [];
             var info = [];
             var exportData = [];
             var c = 0;
@@ -297,8 +296,6 @@ document.querySelector('.newtable').onchange = function (e) {
 
                 for (var j = 0; j < datagroup[k].length; j++) {
 
-                    places.push(datagroup[k][j][6]);
-
 										let [day, startTime, endTime] = parseDayTime(datagroup[k][j][0]);
                     startTime = convertDate(startTime);
                     endTime = convertDate(endTime);
@@ -306,71 +303,21 @@ document.querySelector('.newtable').onchange = function (e) {
                     minTime = Math.min(startTime, minTime);
                     maxTime = Math.max(endTime, maxTime);
 
-                    var start = startTime.toString().split('.');
-                    var end = endTime.toString().split('.');
+                    info.push(buildTimetableEntry(k, datagroup[k][j][4], startTime, endTime, day));
 
-                    var endFirst = !start[1] ? 0 : parseFloat(start[1]);
-                    var endSecon = !end[1] ? 0 : parseFloat(end[1]);
-
-                    var classroom = datagroup[k][j][4];
-                    var classStart = startTime;
-                    var classEnd = endTime;
-                    var dayName = day;
-                    var classGroup = groups[c].value;
-
-                    var name = '<h5>' + k + '</h5>' +
-                        '<p><i>' + classroom + '</i></p>' +
-                        '<p>' + formatTime(classStart) + ' - ' + formatTime(classEnd) + '</p>';
-
-                    info.push({
-                        name: name,
-                        loc: dayName,
-                        startH: parseFloat(start[0]),
-                        startM: endFirst,
-                        endH: parseFloat(end[0]),
-                        endM: endSecon
-                    });
-
-                    // Array data for export feature
                     exportData.push({
-                        day: dayName,
+                        day: day,
                         subject: k,
-                        group: classGroup,
-                        classroom: classroom,
-                        class_start: classStart,
-                        class_end: classEnd
+                        group: groups[c].value,
+                        classroom: datagroup[k][j][4],
+                        class_start: startTime,
+                        class_end: endTime
                     });
                 }
                 c++;
             }
 
-            // convert array to JSON, append to textarea for fetching later
-            document.getElementById('exportData').value = JSON.stringify(exportData);
-
-            var timetable = new Timetable();
-            timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
-            timetable.addLocations(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
-
-            // add event
-            for (var i = 0; i < Object.keys(info).length; i++) {
-                timetable.addEvent(info[i].name, info[i].loc,
-                        new Date(0, 0, 0, info[i].startH, info[i].startM),
-                        new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
-            }
-
-            var renderer = new Timetable.Renderer(timetable);
-
-            // remove previous table before drawing new one
-            document.querySelector('.timetable').innerHTML = '';
-
-            renderer.draw('.timetable'); // any css selector
-
-            // reset colors input and show the tools section before render new table
-            resetTableSubject();
-            changeColours('default');
-            listSubjectsColour();
-            document.getElementById("tools").style.display = 'block';
-
+            drawTimetable(info, exportData, minTime, maxTime);
             saveTimetableState();
 
         }
@@ -466,45 +413,10 @@ function renderFromSavedData(exportData) {
         minTime = Math.min(startTime, minTime);
         maxTime = Math.max(endTime, maxTime);
 
-        var start = startTime.toString().split('.');
-        var end = endTime.toString().split('.');
-        var endFirst = !start[1] ? 0 : parseFloat(start[1]);
-        var endSecon = !end[1] ? 0 : parseFloat(end[1]);
-
-        var name = '<h5>' + d.subject + '</h5>' +
-            '<p><i>' + d.classroom + '</i></p>' +
-            '<p>' + formatTime(startTime) + ' - ' + formatTime(endTime) + '</p>';
-
-        info.push({
-            name: name,
-            loc: d.day,
-            startH: parseFloat(start[0]),
-            startM: endFirst,
-            endH: parseFloat(end[0]),
-            endM: endSecon
-        });
+        info.push(buildTimetableEntry(d.subject, d.classroom, startTime, endTime, d.day));
     }
 
-    document.getElementById('exportData').value = JSON.stringify(exportData);
-
-    var timetable = new Timetable();
-    timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
-    timetable.addLocations(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
-
-    for (var i = 0; i < info.length; i++) {
-        timetable.addEvent(info[i].name, info[i].loc,
-                new Date(0, 0, 0, info[i].startH, info[i].startM),
-                new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
-    }
-
-    var renderer = new Timetable.Renderer(timetable);
-    document.querySelector('.timetable').innerHTML = '';
-    renderer.draw('.timetable');
-
-    resetTableSubject();
-    changeColours('default');
-    listSubjectsColour();
-    document.getElementById("tools").style.display = 'block';
+    drawTimetable(info, exportData, minTime, maxTime);
 }
 
 // Restore last session from localStorage
@@ -772,24 +684,7 @@ function renderMatricTimetable(classes) {
             minTime = Math.min(startTime, minTime);
             maxTime = Math.max(endTime, maxTime);
 
-            var start = startTime.toString().split('.');
-            var end = endTime.toString().split('.');
-
-            var endFirst = !start[1] ? 0 : parseFloat(start[1]);
-            var endSecon = !end[1] ? 0 : parseFloat(end[1]);
-
-            var name = '<h5>' + cls.subject + '</h5>' +
-                '<p><i>' + cls.classroom + '</i></p>' +
-                '<p>' + formatTime(startTime) + ' - ' + formatTime(endTime) + '</p>';
-
-            info.push({
-                name: name,
-                loc: day,
-                startH: parseFloat(start[0]),
-                startM: endFirst,
-                endH: parseFloat(end[0]),
-                endM: endSecon
-            });
+            info.push(buildTimetableEntry(cls.subject, cls.classroom, startTime, endTime, day));
 
             exportData.push({
                 day: day,
@@ -801,31 +696,7 @@ function renderMatricTimetable(classes) {
             });
         }
 
-        // convert array to JSON, append to textarea for fetching later
-        document.getElementById('exportData').value = JSON.stringify(exportData);
-
-        var timetable = new Timetable();
-        timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
-        timetable.addLocations(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
-
-        for (var i = 0; i < info.length; i++) {
-            timetable.addEvent(info[i].name, info[i].loc,
-                    new Date(0, 0, 0, info[i].startH, info[i].startM),
-                    new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
-        }
-
-        var renderer = new Timetable.Renderer(timetable);
-
-        // remove previous table before drawing new one
-        document.querySelector('.timetable').innerHTML = '';
-
-        renderer.draw('.timetable');
-
-        // show tools section and set up colours
-        resetTableSubject();
-        changeColours('default');
-        listSubjectsColour();
-        document.getElementById("tools").style.display = 'block';
+        drawTimetable(info, exportData, minTime, maxTime);
 
         alertify.success("Timetable fetched successfully!");
         saveTimetableState();
@@ -1018,6 +889,47 @@ function formatTime(decimal) {
     return h12 + ':' + (m < 10 ? '0' + m : m) + ' ' + ampm;
 }
 
+// Shared timetable drawing function
+function drawTimetable(info, exportData, minTime, maxTime) {
+    document.getElementById('exportData').value = JSON.stringify(exportData);
+
+    var timetable = new Timetable();
+    timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
+    timetable.addLocations(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
+
+    for (var i = 0; i < info.length; i++) {
+        timetable.addEvent(info[i].name, info[i].loc,
+                new Date(0, 0, 0, info[i].startH, info[i].startM),
+                new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
+    }
+
+    var renderer = new Timetable.Renderer(timetable);
+    document.querySelector('.timetable').innerHTML = '';
+    renderer.draw('.timetable');
+
+    resetTableSubject();
+    changeColours('default');
+    listSubjectsColour();
+    document.getElementById("tools").style.display = 'block';
+}
+
+// Build a timetable info entry from time data
+function buildTimetableEntry(subject, classroom, startTime, endTime, day) {
+    var start = startTime.toString().split('.');
+    var end = endTime.toString().split('.');
+
+    return {
+        name: '<h5>' + subject + '</h5>' +
+              '<p><i>' + (classroom || '') + '</i></p>' +
+              '<p>' + formatTime(startTime) + ' - ' + formatTime(endTime) + '</p>',
+        loc: day,
+        startH: parseFloat(start[0]),
+        startM: !start[1] ? 0 : parseFloat(start[1]),
+        endH: parseFloat(end[0]),
+        endM: !end[1] ? 0 : parseFloat(end[1])
+    };
+}
+
 function convertHourToMinutes(time) {
     time = convertDate(time).split(".");
     return parseInt(time[0])*60 + parseInt(time[1]);
@@ -1040,7 +952,9 @@ function convertHourToMinutes(time) {
  * note that this is self home-made function, so least error checking is made into this code
  */
 
-function doRequest(url, postdata, async, func, silent) {
+function doRequest(url, postdata, async, func, silent, retries) {
+
+    if (retries === undefined) retries = 2;
 
     try {
 
@@ -1051,9 +965,9 @@ function doRequest(url, postdata, async, func, silent) {
         };
 
         http.onreadystatechange = function () {
-            if (!silent) blockLoadingBox(false);
             if (this.readyState === 4) {
                 if (this.status >= 200 && this.status < 400) {
+                    if (!silent) blockLoadingBox(false);
                     if (this.responseText == '') {
                         if (!silent) alertify.delay(20000).error("API returns nothing.\nMaybe an error have happened.\n Try again later...");
                     } else if (this.responseText == '[]' || this.responseText == '{}') {
@@ -1067,14 +981,25 @@ function doRequest(url, postdata, async, func, silent) {
                         if (!silent) alertify.delay(5000).success("Fetching data succeed!");
                         func(this.responseText);
                     }
+                } else if (retries > 0) {
+                    console.warn('Request failed (' + this.status + '), retrying... (' + retries + ' left)');
+                    setTimeout(function () {
+                        doRequest(url, postdata, async, func, silent, retries - 1);
+                    }, 500);
                 } else {
+                    if (!silent) blockLoadingBox(false);
                     if (!silent) alertify.delay(20000).error("There is an error when doing an Ajax request!\nHTTP Error Code :" + this.status);
                 }
             }
         };
 
         http.ontimeout = function () {
-            if (!silent) {
+            if (retries > 0) {
+                console.warn('Request timed out, retrying... (' + retries + ' left)');
+                setTimeout(function () {
+                    doRequest(url, postdata, async, func, silent, retries - 1);
+                }, 500);
+            } else if (!silent) {
                 alertify.delay(20000).error('Error request! No internet or server problem?');
                 blockLoadingBox(false);
             }
@@ -1275,81 +1200,33 @@ function importExcel() {
 
                     // generate Timetable
                     var timetable = dataRows;
-                    var message = "Timetable Imported";
                     var info = [];
                     var exportData = [];
                     var minTime = 23.59, maxTime = 0.0;
 
                     for(var i=0;i<timetable.length;i++) {
-                        var startTime = timetable[i][4]
+                        var startTime = timetable[i][4];
                         var endTime = timetable[i][5];
 
                         minTime = Math.min(startTime, minTime);
                         maxTime = Math.max(endTime, maxTime);
 
-                        var start = startTime.toString().split('.');
-                        var end = endTime.toString().split('.');
-
-                        var endFirst = !start[1] ? 0 : parseFloat(start[1]);
-                        var endSecon = !end[1] ? 0 : parseFloat(end[1]);
-
-                        var subject = timetable[i][1];
-                        var classroom = timetable[i][3];
-                        var classStart = timetable[i][4];
-                        var classEnd = timetable[i][5];
                         var dayName = ucwords(timetable[i][0]);
-                        var classGroup = timetable[i][2];
-                        var name = '<h5>' + subject + '</h5>' +
-                                    '<p><i>' + classroom + '</i></p>' +
-                                    '<p>' + formatTime(classStart) + ' - ' + formatTime(classEnd) + '</p>';
 
-                        info.push({
-                            name: name,
-                            loc: dayName,
-                            startH: parseFloat(start[0]),
-                            startM: endFirst,
-                            endH: parseFloat(end[0]),
-                            endM: endSecon
-                        });
+                        info.push(buildTimetableEntry(timetable[i][1], timetable[i][3], startTime, endTime, dayName));
 
-                        // Array data for export feature
                         exportData.push({
                             day: dayName,
-                            subject: subject,
-                            group: classGroup,
-                            classroom: classroom,
-                            class_start: classStart,
-                            class_end: classEnd
+                            subject: timetable[i][1],
+                            group: timetable[i][2],
+                            classroom: timetable[i][3],
+                            class_start: startTime,
+                            class_end: endTime
                         });
-
                     }
 
-                    // convert array to JSON, append to textarea for fetching later
-                    document.getElementById('exportData').value = JSON.stringify(exportData);
-
-                    var timetable = new Timetable();
-                    timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
-                    timetable.addLocations(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']);
-
-                    // add event
-                    for (var i = 0; i < Object.keys(info).length; i++) {
-                        timetable.addEvent(info[i].name, info[i].loc,
-                                new Date(0, 0, 0, info[i].startH, info[i].startM),
-                                new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
-                    }
-
-                    var renderer = new Timetable.Renderer(timetable);
-                    // remove previous table before drawing new one
-                    document.querySelector('.timetable').innerHTML = '';
-
-                    renderer.draw('.timetable'); // any css selector
-                    // reset colors input and show the tools section before render new table
-                    resetTableSubject();
-                    changeColours('default');
-                    listSubjectsColour();
-                    document.getElementById("tools").style.display = 'block';
-
-                    alertify.success(message);
+                    drawTimetable(info, exportData, minTime, maxTime);
+                    alertify.success("Timetable Imported");
 
                 });
             };
