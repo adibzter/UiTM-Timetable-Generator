@@ -20,8 +20,6 @@ A little update to the frontend, now support mobile view. by - afif
     <link href="favicon.ico" rel="shortcut icon">
     <link rel="stylesheet" href="./styles/timetablejs.css">
     <link rel="stylesheet" type="text/css" href="./styles/design.css">
-    <link rel="stylesheet" type="text/css" href="./styles/vex.css">
-    <link rel="stylesheet" type="text/css" href="./styles/vex-theme-os.css">
     <link rel="stylesheet" type="text/css" href="./styles/blobselect.css">
     <!-- scale down/resize page content to fix screen width, as for mobile view -->
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
@@ -72,7 +70,7 @@ A little update to the frontend, now support mobile view. by - afif
     <div class="tab-content">
 
       <div id="tab-campus" class="tab-panel active">
-        <center>
+        <div class="text-center">
           <select name='campus' id="listcampus" class="select-campus">
             <option value=''>Select Campus</option>
           </select>
@@ -81,24 +79,24 @@ A little update to the frontend, now support mobile view. by - afif
               <option value=''>Select Faculty</option>
             </select>
           </div>
-        </center>
+        </div>
       </div>
 
       <div id="tab-matric" class="tab-panel">
-        <center>
+        <div class="text-center">
           <input type="text" id="matric-input" placeholder="Enter matric number e.g. 2024123456" />
           <br><br>
           <button type="button" class="button -dark login">Fetch Timetable</button>
-        </center>
+        </div>
       </div>
 
       <div id="tab-import" class="tab-panel">
-        <center>
+        <div class="text-center">
           <div class="upload-btn-wrapper">
             <button class="btn">Import Excel (.xlsx) file</button>
             <input type="file" id="excelFile" onchange="return importExcel()"/>
           </div>
-        </center>
+        </div>
       </div>
 
     </div>
@@ -126,7 +124,7 @@ A little update to the frontend, now support mobile view. by - afif
 
 		<!-- change timetable event colours -->
 		<div id="changeColoursTool">
-		<center>
+		<div class="text-center">
 			<fieldset style="display: inline;">
 				<legend><b><u>Customize colours</u></b></legend>
 
@@ -149,7 +147,7 @@ A little update to the frontend, now support mobile view. by - afif
 				<br>
 				<a href="#" onclick="return changeColours('default')"><i>Reset default</i></a>
 			</fieldset>
-		</center>
+		</div>
 		<br><br>
 		</div>
 
@@ -198,7 +196,6 @@ A little update to the frontend, now support mobile view. by - afif
 
 	<script src='./scripts/external/alertify.min.js'></script>
 	<script src='./scripts/external/timetable.js'></script>
-	<script src='./scripts/external/vex.combined.min.js'></script>
 	<script src='./scripts/external/html2canvas.min.js'></script>
 	<script src='./scripts/external/jspdf.umd.min.js'></script>
   	<script src='./scripts/external/blobselect.min.js'></script>

@@ -55,8 +55,6 @@ document.addEventListener("DOMContentLoaded", function (event) {
             if (++listsLoaded === 2) restoreLastSession();
         });
 
-        vex.defaultOptions.className = 'vex-theme-os';
-
     } catch (e) {
         alertify.delay(10000).error(e);
         blockLoadingBox(false);
@@ -991,7 +989,7 @@ function doRequest(url, postdata, async, func, silent) {
                     if (this.responseText == '') {
                         if (!silent) alertify.delay(20000).error("API returns nothing.\nMaybe an error have happened.\n Try again later...");
                     } else if (this.responseText == '[]' || this.responseText == '{}') {
-                        if (!silent) alertify.delay(10000).error("No data found for this selection.");
+                        if (!silent) alertify.delay(10000).error("No data returned from iCRESS for this selection.");
                     } else if (this.responseText.includes("Alert_Error")) {
                         if (!silent) {
                             var errormsg = this.responseText.split(':')[1].trim();
