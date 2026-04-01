@@ -44,9 +44,6 @@ Updated Date : 1/4/26
 <!-- iCRESS status banner -->
 <div id="icress-down-banner"></div>
 
-<!-- start wrapper - use to fix the footer -->
-<div class="wrapper">
-
 	<div class="bannerapp">
 		<div id="deslogouitm">
 			<a href="https://istudent.uitm.edu.my/isp/index_isp.htm" title="UiTM Student Portal" target="blank">
@@ -62,7 +59,10 @@ Updated Date : 1/4/26
 			<span class="anniversary">🎂 10 years (2016 — 2026)</span>
 		</div>
 	</div>
-	<br><br>
+
+<!-- start wrapper -->
+<div class="wrapper">
+
   <div class='inputTimetable'>
 
     <div class="input-tabs">
@@ -89,7 +89,6 @@ Updated Date : 1/4/26
       <div id="tab-matric" class="tab-panel">
         <div class="text-center">
           <input type="text" id="matric-input" placeholder="Enter matric number e.g. 2024123456" />
-          <br><br>
           <button type="button" class="button -dark login">Fetch Timetable</button>
         </div>
       </div>
@@ -126,50 +125,42 @@ Updated Date : 1/4/26
 	<!-- tools list -->
 	<div id="tools" style="display: none;">
 
-		<!-- change timetable event colours -->
-		<div id="changeColoursTool">
-		<div class="text-center">
-			<fieldset style="display: inline;">
-				<legend><b><u>Customize colours</u></b></legend>
+		<div class="tools-panel">
 
-				<table id="subjectColorTable" border="1px" style="border-collapse: collapse; text-align: center;">
+			<!-- export buttons -->
+			<div class="tools-export">
+				<button onclick='return saveImg()' class='tools-btn' title='Save timetable as PNG image'>Save as Image</button>
+				<button onclick='return savePDF()' class='tools-btn' title='Save timetable as PDF'>Save as PDF</button>
+				<button onclick='return saveExcel()' class='tools-btn' title='Save timetable as Excel spreadsheet'>Save as Excel</button>
+			</div>
 
+			<!-- colour customization -->
+			<div id="changeColoursTool">
+				<div class="tools-section-title">Customize Colours</div>
+				<table id="subjectColorTable" class="color-table">
 					<tr>
 						<th>Subject</th>
-						<th>Background</th>
+						<th>Bg</th>
 						<th>Border</th>
 						<th>Text</th>
 					</tr>
 					<tr>
 						<td>All</td>
-						<td><input id="change_bg_color" type="color" onchange="return changeColours()"></td>
-						<td><input id="change_border_color" type="color" onchange="return changeColours()"></td>
-						<td><input id="change_text_color" type="color" onchange="return changeColours()"></td>
+						<td><input id="change_bg_color" type="color" value="#4A90D9" onchange="return changeColours()"></td>
+						<td><input id="change_border_color" type="color" value="#3A7BC8" onchange="return changeColours()"></td>
+						<td><input id="change_text_color" type="color" value="#ffffff" onchange="return changeColours()"></td>
 					</tr>
-
 				</table>
-				<br>
-				<a href="#" onclick="return changeColours('default')"><i>Reset default</i></a>
-			</fieldset>
-		</div>
-		<br><br>
-		</div>
+				<a href="#" class="tools-reset" onclick="return changeColours('default')">Reset default</a>
+			</div>
 
-		<!-- download timetable as image (experimental) -->
-		<button onclick='return saveImg()' class='button -dark' title='Save timetable as PNG image'>Export Timetable to Image (Experimental)</button>
-		<!-- export timetable data to PDF spreadsheet -->
-		<button onclick='return savePDF()' class='button -dark' title='Save timetable as PDF'>Export Timetable to <b>PDF</b></button>
-    <!-- export timetable data to Excel spreadsheet -->
-		<button onclick='return saveExcel()' class='button -green' title='Save timetable as Excel spreadsheet'>Export Timetable to Excel</button>
-		<br><br>
+		</div>
 
 	</div>
 
 	<iframe id="excel_frame" style="display:none;"></iframe>
 
   <textarea name="exportData" id="exportData" rows="8" cols="80" style="display:none"></textarea>
-
-	<br><br><br>
 
 </div> <!-- end wrapper -->
 

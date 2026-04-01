@@ -281,7 +281,6 @@ document.querySelector('.newtable').onchange = function (e) {
             else
                 alertify.success("Successfully rendered!");
 
-            var places = [];
             var info = [];
             var exportData = [];
             var c = 0;
@@ -297,8 +296,6 @@ document.querySelector('.newtable').onchange = function (e) {
 
                 for (var j = 0; j < datagroup[k].length; j++) {
 
-                    places.push(datagroup[k][j][6]);
-
 										let [day, startTime, endTime] = parseDayTime(datagroup[k][j][0]);
                     startTime = convertDate(startTime);
                     endTime = convertDate(endTime);
@@ -306,71 +303,21 @@ document.querySelector('.newtable').onchange = function (e) {
                     minTime = Math.min(startTime, minTime);
                     maxTime = Math.max(endTime, maxTime);
 
-                    var start = startTime.toString().split('.');
-                    var end = endTime.toString().split('.');
+                    info.push(buildTimetableEntry(k, datagroup[k][j][4], startTime, endTime, day));
 
-                    var endFirst = !start[1] ? 0 : parseFloat(start[1]);
-                    var endSecon = !end[1] ? 0 : parseFloat(end[1]);
-
-                    var classroom = datagroup[k][j][4];
-                    var classStart = startTime;
-                    var classEnd = endTime;
-                    var dayName = day;
-                    var classGroup = groups[c].value;
-
-                    var name = '<h5>' + k + '</h5>' +
-                        '<p><i>' + classroom + '</i></p>' +
-                        '<p>' + formatTime(classStart) + ' - ' + formatTime(classEnd) + '</p>';
-
-                    info.push({
-                        name: name,
-                        loc: dayName,
-                        startH: parseFloat(start[0]),
-                        startM: endFirst,
-                        endH: parseFloat(end[0]),
-                        endM: endSecon
-                    });
-
-                    // Array data for export feature
                     exportData.push({
-                        day: dayName,
+                        day: day,
                         subject: k,
-                        group: classGroup,
-                        classroom: classroom,
-                        class_start: classStart,
-                        class_end: classEnd
+                        group: groups[c].value,
+                        classroom: datagroup[k][j][4],
+                        class_start: startTime,
+                        class_end: endTime
                     });
                 }
                 c++;
             }
 
-            // convert array to JSON, append to textarea for fetching later
-            document.getElementById('exportData').value = JSON.stringify(exportData);
-
-            var timetable = new Timetable();
-            timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
-            timetable.addLocations(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
-
-            // add event
-            for (var i = 0; i < Object.keys(info).length; i++) {
-                timetable.addEvent(info[i].name, info[i].loc,
-                        new Date(0, 0, 0, info[i].startH, info[i].startM),
-                        new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
-            }
-
-            var renderer = new Timetable.Renderer(timetable);
-
-            // remove previous table before drawing new one
-            document.querySelector('.timetable').innerHTML = '';
-
-            renderer.draw('.timetable'); // any css selector
-
-            // reset colors input and show the tools section before render new table
-            resetTableSubject();
-            changeColours('default');
-            listSubjectsColour();
-            document.getElementById("tools").style.display = 'block';
-
+            drawTimetable(info, exportData, minTime, maxTime);
             saveTimetableState();
 
         }
@@ -437,7 +384,7 @@ function saveTimetableState() {
         localStorage.setItem('savedTimetable', exportDataStr);
     }
 
-    // Save subject-group selections and group cache for campus mode
+    // Save subject-group selections for campus mode
     if (localStorage.getItem('lastMode') === 'campus') {
         var rows = document.querySelectorAll('.row-select');
         var selections = [];
@@ -449,6 +396,26 @@ function saveTimetableState() {
             }
         }
         localStorage.setItem('savedSelections', JSON.stringify(selections));
+    }
+}
+
+function saveColours() {
+    var events = document.getElementsByClassName('time-entry');
+    var colours = {};
+    var hasCustom = false;
+    for (var i = 0; i < events.length; i++) {
+        var name = events[i].getElementsByTagName('h5')[0].innerHTML;
+        var bg = events[i].style.backgroundColor;
+        var border = events[i].style.borderColor;
+        var text = events[i].style.color;
+        // Only save if inline styles are set (meaning user customized)
+        if (!colours[name] && (bg || border || text)) {
+            colours[name] = { bg: bg, border: border, text: text };
+            hasCustom = true;
+        }
+    }
+    if (hasCustom) {
+        localStorage.setItem('savedColours', JSON.stringify(colours));
     }
 }
 
@@ -466,45 +433,10 @@ function renderFromSavedData(exportData) {
         minTime = Math.min(startTime, minTime);
         maxTime = Math.max(endTime, maxTime);
 
-        var start = startTime.toString().split('.');
-        var end = endTime.toString().split('.');
-        var endFirst = !start[1] ? 0 : parseFloat(start[1]);
-        var endSecon = !end[1] ? 0 : parseFloat(end[1]);
-
-        var name = '<h5>' + d.subject + '</h5>' +
-            '<p><i>' + d.classroom + '</i></p>' +
-            '<p>' + formatTime(startTime) + ' - ' + formatTime(endTime) + '</p>';
-
-        info.push({
-            name: name,
-            loc: d.day,
-            startH: parseFloat(start[0]),
-            startM: endFirst,
-            endH: parseFloat(end[0]),
-            endM: endSecon
-        });
+        info.push(buildTimetableEntry(d.subject, d.classroom, startTime, endTime, d.day));
     }
 
-    document.getElementById('exportData').value = JSON.stringify(exportData);
-
-    var timetable = new Timetable();
-    timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
-    timetable.addLocations(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
-
-    for (var i = 0; i < info.length; i++) {
-        timetable.addEvent(info[i].name, info[i].loc,
-                new Date(0, 0, 0, info[i].startH, info[i].startM),
-                new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
-    }
-
-    var renderer = new Timetable.Renderer(timetable);
-    document.querySelector('.timetable').innerHTML = '';
-    renderer.draw('.timetable');
-
-    resetTableSubject();
-    changeColours('default');
-    listSubjectsColour();
-    document.getElementById("tools").style.display = 'block';
+    drawTimetable(info, exportData, minTime, maxTime);
 }
 
 // Restore last session from localStorage
@@ -544,7 +476,10 @@ function restoreLastSession() {
 
         // Restore subject/group table
         var savedSelections = localStorage.getItem('savedSelections');
-        if (savedSelections) {
+        if (!savedSelections || JSON.parse(savedSelections).length === 0) {
+            // No saved selections - just load subjects fresh
+            showNewTable();
+        } else if (savedSelections) {
             try {
                 var selections = JSON.parse(savedSelections);
 
@@ -583,22 +518,18 @@ function restoreLastSession() {
                                 }
                             }
 
-                            // Add one empty row at the end
-                            addNewRow();
-                            var lastSubjEl = document.querySelector('.row-select:last-child .select-subject');
-                            lastSubjEl.innerHTML = '<option value="">Select</option>';
-                            for (var j = 0; j < listsubject.length; j++) {
-                                var el = document.createElement('option');
-                                el.value = listsubject[j].subject;
-                                el.innerHTML = listsubject[j].subject;
-                                lastSubjEl.appendChild(el);
-                            }
-
+                            // Init blobselect on populated rows before adding empty row
                             initSelect('select-subject');
                             initSelect('select-group');
+
+                            // Add empty row AFTER init so blobselect doesn't touch it
+                            addNewRow();
                             document.getElementById('select-table').style.display = 'block';
 
                             // Silently fetch full group lists in background
+                            var groupPending = selections.filter(function(s) { return !!s.subject; }).length;
+                            var freshExport = [];
+
                             selections.forEach(function (sel) {
                                 if (!sel.subject) return;
                                 doRequest('api.php?getgroup', 'subject=' + sel.subject + '&faculty=' + faculty + '&campus=' + campus, true, function (data) {
@@ -626,6 +557,35 @@ function restoreLastSession() {
                                                 }
                                             }
                                         }
+
+                                        // Collect fresh timetable data for this subject
+                                        if (sel.group && group[sel.subject][sel.group]) {
+                                            var groupRows = group[sel.subject][sel.group];
+                                            for (var j = 0; j < groupRows.length; j++) {
+                                                var parts = parseDayTime(groupRows[j][0]);
+                                                freshExport.push({
+                                                    day: parts[0],
+                                                    subject: sel.subject,
+                                                    group: sel.group,
+                                                    classroom: groupRows[j][4] || '',
+                                                    class_start: convertDate(parts[1]),
+                                                    class_end: convertDate(parts[2])
+                                                });
+                                            }
+                                        }
+                                    }
+
+                                    // When all group fetches done, update localStorage
+                                    groupPending--;
+                                    if (groupPending === 0 && freshExport.length > 0) {
+                                        var oldData = localStorage.getItem('savedTimetable');
+                                        var newData = JSON.stringify(freshExport);
+                                        if (oldData !== newData) {
+                                            localStorage.setItem('savedTimetable', newData);
+                                            document.getElementById('exportData').value = newData;
+                                            renderFromSavedData(freshExport);
+                                            console.log('Timetable updated from server');
+                                        }
                                     }
                                 }, true); // silent - no loading spinner
                             });
@@ -646,6 +606,42 @@ function restoreLastSession() {
             }
         } catch (e) { console.warn('Session restore error:', e); }
     }
+
+    // Background refresh for matric mode
+    if (lastMode === 'matric') {
+        var matric = localStorage.getItem('lastMatric');
+        if (matric) {
+            doRequest('api.php?fetchDataMatrix', 'studentId=' + matric, true, function (data) {
+                if (data != '') {
+                    var classes = JSON.parse(data);
+                    var freshExport = [];
+                    for (var i = 0; i < classes.length; i++) {
+                        var cls = classes[i];
+                        var parts = parseDayTime(cls.day_time);
+                        var start = convertDate(parts[1]);
+                        var end = convertDate(parts[2]);
+                        freshExport.push({
+                            day: parts[0],
+                            subject: cls.subject,
+                            group: cls.group,
+                            classroom: cls.classroom,
+                            class_start: start,
+                            class_end: end
+                        });
+                    }
+                    var oldData = localStorage.getItem('savedTimetable');
+                    var newData = JSON.stringify(freshExport);
+                    if (oldData !== newData) {
+                        localStorage.setItem('savedTimetable', newData);
+                        document.getElementById('exportData').value = newData;
+                        renderFromSavedData(freshExport);
+                        console.log('Timetable updated from server');
+                    }
+                }
+            }, true);
+        }
+    }
+    // Campus mode: background refresh already happens via getsubject + getgroup calls above
 }
 
 // Auto fetch by matric number
@@ -704,24 +700,7 @@ function renderMatricTimetable(classes) {
             minTime = Math.min(startTime, minTime);
             maxTime = Math.max(endTime, maxTime);
 
-            var start = startTime.toString().split('.');
-            var end = endTime.toString().split('.');
-
-            var endFirst = !start[1] ? 0 : parseFloat(start[1]);
-            var endSecon = !end[1] ? 0 : parseFloat(end[1]);
-
-            var name = '<h5>' + cls.subject + '</h5>' +
-                '<p><i>' + cls.classroom + '</i></p>' +
-                '<p>' + formatTime(startTime) + ' - ' + formatTime(endTime) + '</p>';
-
-            info.push({
-                name: name,
-                loc: day,
-                startH: parseFloat(start[0]),
-                startM: endFirst,
-                endH: parseFloat(end[0]),
-                endM: endSecon
-            });
+            info.push(buildTimetableEntry(cls.subject, cls.classroom, startTime, endTime, day));
 
             exportData.push({
                 day: day,
@@ -733,31 +712,7 @@ function renderMatricTimetable(classes) {
             });
         }
 
-        // convert array to JSON, append to textarea for fetching later
-        document.getElementById('exportData').value = JSON.stringify(exportData);
-
-        var timetable = new Timetable();
-        timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
-        timetable.addLocations(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
-
-        for (var i = 0; i < info.length; i++) {
-            timetable.addEvent(info[i].name, info[i].loc,
-                    new Date(0, 0, 0, info[i].startH, info[i].startM),
-                    new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
-        }
-
-        var renderer = new Timetable.Renderer(timetable);
-
-        // remove previous table before drawing new one
-        document.querySelector('.timetable').innerHTML = '';
-
-        renderer.draw('.timetable');
-
-        // show tools section and set up colours
-        resetTableSubject();
-        changeColours('default');
-        listSubjectsColour();
-        document.getElementById("tools").style.display = 'block';
+        drawTimetable(info, exportData, minTime, maxTime);
 
         alertify.success("Timetable fetched successfully!");
         saveTimetableState();
@@ -950,6 +905,82 @@ function formatTime(decimal) {
     return h12 + ':' + (m < 10 ? '0' + m : m) + ' ' + ampm;
 }
 
+// Shared timetable drawing function
+function drawTimetable(info, exportData, minTime, maxTime) {
+    document.getElementById('exportData').value = JSON.stringify(exportData);
+
+    var timetable = new Timetable();
+    timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
+    timetable.addLocations(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
+
+    for (var i = 0; i < info.length; i++) {
+        timetable.addEvent(info[i].name, info[i].loc,
+                new Date(0, 0, 0, info[i].startH, info[i].startM),
+                new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
+    }
+
+    var renderer = new Timetable.Renderer(timetable);
+    document.querySelector('.timetable').innerHTML = '';
+    renderer.draw('.timetable');
+
+    resetTableSubject();
+    changeColours('init');
+    listSubjectsColour();
+    restoreColours();
+    document.getElementById("tools").style.display = 'block';
+}
+
+function restoreColours() {
+    var saved = localStorage.getItem('savedColours');
+    if (!saved) return;
+    try {
+        var colours = JSON.parse(saved);
+        var events = document.getElementsByClassName('time-entry');
+        for (var i = 0; i < events.length; i++) {
+            var name = events[i].getElementsByTagName('h5')[0].innerHTML;
+            if (colours[name]) {
+                if (colours[name].bg) events[i].style.backgroundColor = colours[name].bg;
+                if (colours[name].border) events[i].style.borderColor = colours[name].border;
+                if (colours[name].text) events[i].style.color = colours[name].text;
+            }
+        }
+
+        // Also update the colour pickers to match
+        for (var subject in colours) {
+            var bgPicker = document.getElementById('change_bg_color' + subject);
+            var borderPicker = document.getElementById('change_border_color' + subject);
+            var textPicker = document.getElementById('change_text_color' + subject);
+            if (bgPicker && colours[subject].bg) bgPicker.value = rgbToHex(colours[subject].bg);
+            if (borderPicker && colours[subject].border) borderPicker.value = rgbToHex(colours[subject].border);
+            if (textPicker && colours[subject].text) textPicker.value = rgbToHex(colours[subject].text);
+        }
+    } catch (e) { console.warn('Colour restore error:', e); }
+}
+
+function rgbToHex(rgb) {
+    if (rgb.charAt(0) === '#') return rgb;
+    var parts = rgb.match(/\d+/g);
+    if (!parts || parts.length < 3) return rgb;
+    return '#' + ((1 << 24) + (parseInt(parts[0]) << 16) + (parseInt(parts[1]) << 8) + parseInt(parts[2])).toString(16).slice(1);
+}
+
+// Build a timetable info entry from time data
+function buildTimetableEntry(subject, classroom, startTime, endTime, day) {
+    var start = startTime.toString().split('.');
+    var end = endTime.toString().split('.');
+
+    return {
+        name: '<h5>' + subject + '</h5>' +
+              '<p><i>' + (classroom || '') + '</i></p>' +
+              '<p>' + formatTime(startTime) + ' - ' + formatTime(endTime) + '</p>',
+        loc: day,
+        startH: parseFloat(start[0]),
+        startM: !start[1] ? 0 : parseFloat(start[1]),
+        endH: parseFloat(end[0]),
+        endM: !end[1] ? 0 : parseFloat(end[1])
+    };
+}
+
 function convertHourToMinutes(time) {
     time = convertDate(time).split(".");
     return parseInt(time[0])*60 + parseInt(time[1]);
@@ -972,7 +1003,9 @@ function convertHourToMinutes(time) {
  * note that this is self home-made function, so least error checking is made into this code
  */
 
-function doRequest(url, postdata, async, func, silent) {
+function doRequest(url, postdata, async, func, silent, retries) {
+
+    if (retries === undefined) retries = 2;
 
     try {
 
@@ -983,9 +1016,9 @@ function doRequest(url, postdata, async, func, silent) {
         };
 
         http.onreadystatechange = function () {
-            if (!silent) blockLoadingBox(false);
             if (this.readyState === 4) {
                 if (this.status >= 200 && this.status < 400) {
+                    if (!silent) blockLoadingBox(false);
                     if (this.responseText == '') {
                         if (!silent) alertify.delay(20000).error("API returns nothing.\nMaybe an error have happened.\n Try again later...");
                     } else if (this.responseText == '[]' || this.responseText == '{}') {
@@ -999,14 +1032,25 @@ function doRequest(url, postdata, async, func, silent) {
                         if (!silent) alertify.delay(5000).success("Fetching data succeed!");
                         func(this.responseText);
                     }
+                } else if (retries > 0) {
+                    console.warn('Request failed (' + this.status + '), retrying... (' + retries + ' left)');
+                    setTimeout(function () {
+                        doRequest(url, postdata, async, func, silent, retries - 1);
+                    }, 500);
                 } else {
+                    if (!silent) blockLoadingBox(false);
                     if (!silent) alertify.delay(20000).error("There is an error when doing an Ajax request!\nHTTP Error Code :" + this.status);
                 }
             }
         };
 
         http.ontimeout = function () {
-            if (!silent) {
+            if (retries > 0) {
+                console.warn('Request timed out, retrying... (' + retries + ' left)');
+                setTimeout(function () {
+                    doRequest(url, postdata, async, func, silent, retries - 1);
+                }, 500);
+            } else if (!silent) {
                 alertify.delay(20000).error('Error request! No internet or server problem?');
                 blockLoadingBox(false);
             }
@@ -1045,28 +1089,34 @@ function parents(nodeCur, parentMatch) {
 function saveImg() {
 
     try {
-        // set viewport meta width, so even on mobile, page will rendered desktop mode. needed for full screenshot
-        var element = document.getElementsByName("viewport")[0];
-        element.setAttribute("content", "");
-        document.body.style.zoom="60%"; // zoom out the page, for low res screen
-
-        // use html2canvas js library, to convert the content into html5 "canvas"
         var timearea = document.getElementById("timetable");
-        html2canvas(timearea, { scale: 3 }).then((canvas) => {
-          // create new hyperlink with download attribute, set the image url, auto click the link to download
+        var section = timearea.querySelector('section');
+        var innerTime = section ? section.querySelector('time') : null;
+
+        // Get the full content width (including overflow hidden on mobile)
+        var fullWidth = innerTime ? innerTime.scrollWidth + (section.offsetLeft || 0) + 100 : timearea.scrollWidth + 100;
+
+        // Temporarily remove overflow and expand for full capture
+        var origOverflow = section ? section.style.overflow : '';
+        var origWidth = timearea.style.width;
+        if (section) section.style.overflow = 'visible';
+        timearea.style.width = fullWidth + 'px';
+
+        html2canvas(timearea, {
+            scale: 2,
+            scrollX: 0,
+            scrollY: 0,
+            width: fullWidth,
+            windowWidth: fullWidth
+        }).then(function (canvas) {
+          // Restore original styles
+          if (section) section.style.overflow = origOverflow;
+          timearea.style.width = origWidth;
+
           var link = document.createElement('a');
           link.download = 'timetable.png';
-          link.href = canvas
-            .toDataURL('image/png')
-            .replace('image/png', 'image/octet-stream');
+          link.href = canvas.toDataURL('image/png');
           link.click();
-
-          // restore back the responsive viewport meta and zoom leve
-          element.setAttribute(
-            'content',
-            'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'
-          );
-          document.body.style.zoom = '100%';
         });
     }
     catch (e) {
@@ -1207,81 +1257,33 @@ function importExcel() {
 
                     // generate Timetable
                     var timetable = dataRows;
-                    var message = "Timetable Imported";
                     var info = [];
                     var exportData = [];
                     var minTime = 23.59, maxTime = 0.0;
 
                     for(var i=0;i<timetable.length;i++) {
-                        var startTime = timetable[i][4]
+                        var startTime = timetable[i][4];
                         var endTime = timetable[i][5];
 
                         minTime = Math.min(startTime, minTime);
                         maxTime = Math.max(endTime, maxTime);
 
-                        var start = startTime.toString().split('.');
-                        var end = endTime.toString().split('.');
-
-                        var endFirst = !start[1] ? 0 : parseFloat(start[1]);
-                        var endSecon = !end[1] ? 0 : parseFloat(end[1]);
-
-                        var subject = timetable[i][1];
-                        var classroom = timetable[i][3];
-                        var classStart = timetable[i][4];
-                        var classEnd = timetable[i][5];
                         var dayName = ucwords(timetable[i][0]);
-                        var classGroup = timetable[i][2];
-                        var name = '<h5>' + subject + '</h5>' +
-                                    '<p><i>' + classroom + '</i></p>' +
-                                    '<p>' + formatTime(classStart) + ' - ' + formatTime(classEnd) + '</p>';
 
-                        info.push({
-                            name: name,
-                            loc: dayName,
-                            startH: parseFloat(start[0]),
-                            startM: endFirst,
-                            endH: parseFloat(end[0]),
-                            endM: endSecon
-                        });
+                        info.push(buildTimetableEntry(timetable[i][1], timetable[i][3], startTime, endTime, dayName));
 
-                        // Array data for export feature
                         exportData.push({
                             day: dayName,
-                            subject: subject,
-                            group: classGroup,
-                            classroom: classroom,
-                            class_start: classStart,
-                            class_end: classEnd
+                            subject: timetable[i][1],
+                            group: timetable[i][2],
+                            classroom: timetable[i][3],
+                            class_start: startTime,
+                            class_end: endTime
                         });
-
                     }
 
-                    // convert array to JSON, append to textarea for fetching later
-                    document.getElementById('exportData').value = JSON.stringify(exportData);
-
-                    var timetable = new Timetable();
-                    timetable.setScope(Math.floor(minTime), Math.ceil(maxTime));
-                    timetable.addLocations(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']);
-
-                    // add event
-                    for (var i = 0; i < Object.keys(info).length; i++) {
-                        timetable.addEvent(info[i].name, info[i].loc,
-                                new Date(0, 0, 0, info[i].startH, info[i].startM),
-                                new Date(0, 0, 0, info[i].endH, info[i].endM), '#');
-                    }
-
-                    var renderer = new Timetable.Renderer(timetable);
-                    // remove previous table before drawing new one
-                    document.querySelector('.timetable').innerHTML = '';
-
-                    renderer.draw('.timetable'); // any css selector
-                    // reset colors input and show the tools section before render new table
-                    resetTableSubject();
-                    changeColours('default');
-                    listSubjectsColour();
-                    document.getElementById("tools").style.display = 'block';
-
-                    alertify.success(message);
+                    drawTimetable(info, exportData, minTime, maxTime);
+                    alertify.success("Timetable Imported");
 
                 });
             };
@@ -1304,9 +1306,10 @@ function changeColours(type)
 
     // fetch choosen colors
     // check if type is set to 'default', set var value to default colors
-    var bg_color = (type != 'default') ? document.getElementById('change_bg_color').value : '#EC6A5E';
-    var border_color = (type != 'default') ? document.getElementById('change_border_color').value : '#e32c1b';
-    var text_color = (type != 'default') ? document.getElementById('change_text_color').value : '#ffffff';
+    var isReset = (type === 'default' || type === 'init');
+    var bg_color = !isReset ? document.getElementById('change_bg_color').value : '#4A90D9';
+    var border_color = !isReset ? document.getElementById('change_border_color').value : '#3A7BC8';
+    var text_color = !isReset ? document.getElementById('change_text_color').value : '#ffffff';
 
     // iterate through the nodes, change the colors
     for(var i=0; i<events.length; i++)
@@ -1316,13 +1319,28 @@ function changeColours(type)
         events[i].style.color = text_color;
     }
 
-    // if type is set to 'default' reset back the colors pickers to default colors
-    if(type == 'default')
+    // reset color pickers to default
+    if(isReset)
     {
-        document.getElementById('change_bg_color').value = '#EC6A5E';
-        document.getElementById('change_border_color').value = '#e32c1b';
+        document.getElementById('change_bg_color').value = '#4A90D9';
+        document.getElementById('change_border_color').value = '#3A7BC8';
         document.getElementById('change_text_color').value = '#ffffff';
+
+        // reset per-subject pickers too
+        var pickers = document.querySelectorAll('#subjectColorTable input[type="color"]');
+        for (var i = 0; i < pickers.length; i++) {
+            var id = pickers[i].id;
+            if (id.indexOf('change_bg_color') === 0) pickers[i].value = '#4A90D9';
+            else if (id.indexOf('change_border_color') === 0) pickers[i].value = '#3A7BC8';
+            else if (id.indexOf('change_text_color') === 0) pickers[i].value = '#ffffff';
+        }
+
+        // Only clear saved colours on explicit user reset, not on initial render
+        if (type === 'default') localStorage.removeItem('savedColours');
     }
+
+    // Only save colours on explicit user changes, not on init/default
+    if (!isReset) saveColours();
 }
 
 // Change event colours scheme for each subject
@@ -1348,6 +1366,8 @@ function changeSubjectColours(subject)
             events[i].style.color = text_color;
         }
     }
+
+    saveColours();
 }
 
 // function to fetch and list down the subjects for changing colors
@@ -1380,9 +1400,9 @@ function listSubjectsColour()
         var funcname = "changeSubjectColours('"+subjectsname[i]+"')";
 
         cell1.innerHTML = subjectsname[i];
-        cell2.innerHTML = '<input id="change_bg_color'+subjectsname[i]+'" type="color" onchange="return '+funcname+'">';
-        cell3.innerHTML = '<input id="change_border_color'+subjectsname[i]+'" type="color" onchange="return '+funcname+'">';
-        cell4.innerHTML = '<input id="change_text_color'+subjectsname[i]+'" type="color" onchange="return '+funcname+'">';
+        cell2.innerHTML = '<input id="change_bg_color'+subjectsname[i]+'" type="color" value="#4A90D9" onchange="return '+funcname+'">';
+        cell3.innerHTML = '<input id="change_border_color'+subjectsname[i]+'" type="color" value="#3A7BC8" onchange="return '+funcname+'">';
+        cell4.innerHTML = '<input id="change_text_color'+subjectsname[i]+'" type="color" value="#ffffff" onchange="return '+funcname+'">';
     }
 
 }
