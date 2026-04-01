@@ -1,0 +1,10 @@
+# https://github.com/wei/pull
+
+version: "1"
+rules:
+  - base: master
+    upstream: afzafri:master
+    mergeMethod: hardreset # Optional, one of [none, merge, squash, rebase, hardreset], Default: none.
+  - base: gcp-deploy
+    upstream: master
+    mergeMethod: merge
