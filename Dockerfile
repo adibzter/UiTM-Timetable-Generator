@@ -3,10 +3,6 @@
 # https://hub.docker.com/_/php
 FROM php:8.5-apache
 
-# Configure PHP for Cloud Run.
-# Precompile PHP code with opcache.
-RUN docker-php-ext-install -j "$(nproc)" opcache
-
 # Install zip
 RUN apt-get update && \
      apt-get install -y \
