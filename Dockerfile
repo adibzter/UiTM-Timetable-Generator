@@ -1,7 +1,7 @@
 
 # Use the official PHP image.
 # https://hub.docker.com/_/php
-FROM php:8.5-apache
+FROM php:8.5.12-apache
 
 # Install zip
 RUN apt-get update && \
